@@ -228,7 +228,7 @@ func l2ImmutableDeployer(backend *backends.SimulatedBackend, opts *bind.Transact
 	case "EAS":
 		_, tx, _, err = bindings.DeployEAS(opts, backend)
 	case "RevenueSharer":
-		_, tx, _, err = bindings.DeploRevenueSharer(opts, backend)
+		_, tx, _, err = bindings.DeployRevenueSharer(opts, backend, common.Address{}, common.Address{}, big.NewInt(1200)) // TODO update constructor params
 	default:
 		return tx, fmt.Errorf("unknown contract: %s", deployment.Name)
 	}
