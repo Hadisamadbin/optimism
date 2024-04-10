@@ -149,13 +149,13 @@ contract L2GenesisTest is Test {
         genesis.writeGenesisAllocs();
 
         // 2 predeploys do not have proxies
-        assertEq(getCodeCount(path, "Proxy.sol:Proxy"), genesis.PREDEPLOY_COUNT() - 2);
+        assertEq(getCodeCount(path, "Proxy.sol:Proxy"), Predeploys.PREDEPLOY_COUNT - 2);
 
         // 17 proxies have the implementation set
         assertEq(getPredeployCountWithSlotSet(path, Constants.PROXY_IMPLEMENTATION_ADDRESS), 17);
 
         // All proxies except 2 have the proxy 1967 admin slot set to the proxy admin
-        assertEq(getPredeployCountWithSlotSetToValue(path, Constants.PROXY_OWNER_ADDRESS, bytes32(uint256(uint160(Predeploys.PROXY_ADMIN)))), genesis.PREDEPLOY_COUNT() - 2);
+        assertEq(getPredeployCountWithSlotSetToValue(path, Constants.PROXY_OWNER_ADDRESS, bytes32(uint256(uint160(Predeploys.PROXY_ADMIN)))), Predeploys.PREDEPLOY_COUNT - 2);
 
         // For each predeploy
         assertEq(0xc0D3C0d3C0d3C0D3c0d3C0d3c0D3C0d3c0d30000, getImplementationAtAPath(path, Predeploys.LEGACY_MESSAGE_PASSER));

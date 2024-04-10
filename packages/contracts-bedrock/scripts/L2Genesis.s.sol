@@ -36,10 +36,10 @@ interface IInitializable {
 ///         2. A contract must be deployed using the `new` syntax if there are immutables in the code.
 ///         Any other side effects from the init code besides setting the immutables must be cleaned up afterwards.
 contract L2Genesis is Deployer {
-    uint256 constant public PREDEPLOY_COUNT = 2048;
     uint256 constant public PRECOMPILE_COUNT = 256;
 
     uint80 internal constant DEV_ACCOUNT_FUND_AMT = 10_000 ether;
+
     /// @notice Default Anvil dev accounts. Only funded if `cfg.fundDevAccounts == true`.
     address[10] internal devAccounts = [
         0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266,
@@ -54,9 +54,6 @@ contract L2Genesis is Deployer {
         0xa0Ee7A142d267C1f36714E4a8F75612F20a79720
     ];
 
-
-    mapping(address => string) internal names;
-
     function name() public pure override returns (string memory) {
         return "L2Genesis";
     }
@@ -65,35 +62,6 @@ contract L2Genesis is Deployer {
     ///      loads in the addresses for the L1 contract deployments.
     function setUp() public override {
         super.setUp();
-
-        // TODO: modularize this setNames into own contract
-        _setNames();
-    }
-
-    /// @dev Creates a mapping of predeploy addresses to their names. This needs to be updated
-    ///      any time there is a new predeploy added.
-    function _setNames() internal {
-        names[Predeploys.L2_TO_L1_MESSAGE_PASSER] = "L2ToL1MessagePasser";
-        names[Predeploys.L2_CROSS_DOMAIN_MESSENGER] = "L2CrossDomainMessenger";
-        names[Predeploys.L2_STANDARD_BRIDGE] = "L2StandardBridge";
-        names[Predeploys.L2_ERC721_BRIDGE] = "L2ERC721Bridge";
-        names[Predeploys.SEQUENCER_FEE_WALLET] = "SequencerFeeVault";
-        names[Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY] = "OptimismMintableERC20Factory";
-        names[Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY] = "OptimismMintableERC721Factory";
-        names[Predeploys.L1_BLOCK_ATTRIBUTES] = "L1Block";
-        names[Predeploys.GAS_PRICE_ORACLE] = "GasPriceOracle";
-        names[Predeploys.L1_MESSAGE_SENDER] = "L1MessageSender";
-        names[Predeploys.DEPLOYER_WHITELIST] = "DeployerWhitelist";
-        names[Predeploys.WETH9] = "WETH9";
-        names[Predeploys.LEGACY_ERC20_ETH] = "LegacyERC20ETH";
-        names[Predeploys.L1_BLOCK_NUMBER] = "L1BlockNumber";
-        names[Predeploys.LEGACY_MESSAGE_PASSER] = "LegacyMessagePasser";
-        names[Predeploys.PROXY_ADMIN] = "ProxyAdmin";
-        names[Predeploys.BASE_FEE_VAULT] = "BaseFeeVault";
-        names[Predeploys.L1_FEE_VAULT] = "L1FeeVault";
-        names[Predeploys.GOVERNANCE_TOKEN] = "GovernanceToken";
-        names[Predeploys.SCHEMA_REGISTRY] = "SchemaRegistry";
-        names[Predeploys.EAS] = "EAS";
     }
 
     /// @dev Sets the precompiles, proxies, and the implementation accounts to be `vm.dumpState`
@@ -133,11 +101,11 @@ contract L2Genesis is Deployer {
         console.log(
             "Setting proxy deployed bytecode for addresses in range %s through %s",
             address(prefix | uint160(0)),
-            address(prefix | uint160(PREDEPLOY_COUNT - 1))
+            address(prefix | uint160(Predeploys.PREDEPLOY_COUNT - 1))
         );
-        for (uint256 i = 0; i < PREDEPLOY_COUNT; i++) {
+        for (uint256 i = 0; i < Predeploys.PREDEPLOY_COUNT; i++) {
             address addr = address(prefix | uint160(i));
-            if (_notProxied(addr)) {
+            if (Predeploys.notProxied(addr)) {
                 console.log("Skipping proxy at %s", addr);
                 continue;
             }
@@ -145,8 +113,8 @@ contract L2Genesis is Deployer {
             vm.etch(addr, code);
             EIP1967Helper.setAdmin(addr, Predeploys.PROXY_ADMIN);
 
-            if (_isDefinedPredeploy(addr)) {
-                address implementation = predeployToCodeNamespace(addr);
+            if (Predeploys.isSupportedPredeploy(addr)) {
+                address implementation = Predeploys.predeployToCodeNamespace(addr);
                 console.log("Setting proxy %s implementation: %s", addr, implementation);
                 EIP1967Helper.setImplementation(addr, implementation);
             }
@@ -179,7 +147,7 @@ contract L2Genesis is Deployer {
         // 1B,1C,1D,1E,1F: not used.
         setSchemaRegistry(); // 20
         setEAS(); // 21
-        setGovernanceToken(); // 42
+        setGovernanceToken(); // 42: OP (not behind a proxy)
     }
 
     function setProxyAdmin() public {
@@ -243,7 +211,7 @@ contract L2Genesis is Deployer {
             _withdrawalNetwork: FeeVault.WithdrawalNetwork(cfg.sequencerFeeVaultWithdrawalNetwork())
         });
 
-        address impl = predeployToCodeNamespace(Predeploys.SEQUENCER_FEE_WALLET);
+        address impl = Predeploys.predeployToCodeNamespace(Predeploys.SEQUENCER_FEE_WALLET);
         console.log("Setting %s implementation at: %s", "SequencerFeeVault", impl);
         vm.etch(impl, address(vault).code);
 
@@ -272,7 +240,7 @@ contract L2Genesis is Deployer {
             _remoteChainId: cfg.l1ChainID()
         });
 
-        address impl = predeployToCodeNamespace(Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY);
+        address impl = Predeploys.predeployToCodeNamespace(Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY);
         console.log("Setting %s implementation at: %s", "OptimismMintableERC721Factory", impl);
         vm.etch(impl, address(factory).code);
 
@@ -344,7 +312,7 @@ contract L2Genesis is Deployer {
             _withdrawalNetwork: FeeVault.WithdrawalNetwork(cfg.baseFeeVaultWithdrawalNetwork())
         });
 
-        address impl = predeployToCodeNamespace(Predeploys.BASE_FEE_VAULT);
+        address impl = Predeploys.predeployToCodeNamespace(Predeploys.BASE_FEE_VAULT);
         console.log("Setting %s implementation at: %s", "BaseFeeVault", impl);
         vm.etch(impl, address(vault).code);
 
@@ -361,7 +329,7 @@ contract L2Genesis is Deployer {
             _withdrawalNetwork: FeeVault.WithdrawalNetwork(cfg.l1FeeVaultWithdrawalNetwork())
         });
 
-        address impl = predeployToCodeNamespace(Predeploys.L1_FEE_VAULT);
+        address impl = Predeploys.predeployToCodeNamespace(Predeploys.L1_FEE_VAULT);
         console.log("Setting %s implementation at: %s", "L1FeeVault", impl);
         vm.etch(impl, address(vault).code);
 
@@ -403,8 +371,8 @@ contract L2Genesis is Deployer {
     ///         It uses low level create to deploy the contract due to the code
     ///         having immutables and being a different compiler version.
     function setEAS() public {
-        string memory cname = names[Predeploys.EAS];
-        address impl = predeployToCodeNamespace(Predeploys.EAS);
+        string memory cname = Predeploys.getName(Predeploys.EAS);
+        address impl = Predeploys.predeployToCodeNamespace(Predeploys.EAS);
         bytes memory code = vm.getCode(string.concat(cname, ".sol:", cname));
 
         address eas;
@@ -477,35 +445,10 @@ contract L2Genesis is Deployer {
         _setPreinstallCode(Preinstalls.SafeL2_v130, "SafeL2_v130");
     }
 
-    /// @notice Returns true if the address is not proxied.
-    function _notProxied(address _addr) internal pure returns (bool) {
-        return _addr == Predeploys.GOVERNANCE_TOKEN || _addr == Predeploys.WETH9;
-    }
-
-    /// @notice Returns true if the address is a predeploy.
-    function _isDefinedPredeploy(address _addr) internal pure returns (bool) {
-        return _addr == Predeploys.L2_TO_L1_MESSAGE_PASSER || _addr == Predeploys.L2_CROSS_DOMAIN_MESSENGER
-            || _addr == Predeploys.L2_STANDARD_BRIDGE || _addr == Predeploys.L2_ERC721_BRIDGE
-            || _addr == Predeploys.SEQUENCER_FEE_WALLET || _addr == Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY
-            || _addr == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY || _addr == Predeploys.L1_BLOCK_ATTRIBUTES
-            || _addr == Predeploys.GAS_PRICE_ORACLE || _addr == Predeploys.DEPLOYER_WHITELIST || _addr == Predeploys.WETH9
-            || _addr == Predeploys.L1_BLOCK_NUMBER || _addr == Predeploys.LEGACY_MESSAGE_PASSER
-            || _addr == Predeploys.PROXY_ADMIN || _addr == Predeploys.BASE_FEE_VAULT || _addr == Predeploys.L1_FEE_VAULT
-            || _addr == Predeploys.GOVERNANCE_TOKEN || _addr == Predeploys.SCHEMA_REGISTRY || _addr == Predeploys.EAS;
-    }
-
-    /// @notice Function to compute the expected address of the predeploy implementation
-    ///         in the genesis state.
-    function predeployToCodeNamespace(address _addr) public pure returns (address) {
-        return address(
-            uint160(uint256(uint160(_addr)) & 0xffff | uint256(uint160(0xc0D3C0d3C0d3C0D3c0d3C0d3c0D3C0d3c0d30000)))
-        );
-    }
-
     /// @notice Sets the bytecode in state
     function _setImplementationCode(address _addr) internal returns (address) {
-        string memory cname = names[_addr];
-        address impl = predeployToCodeNamespace(_addr);
+        string memory cname = Predeploys.getName(_addr);
+        address impl = Predeploys.predeployToCodeNamespace(_addr);
         console.log("Setting %s implementation at: %s", cname, impl);
         vm.etch(impl, vm.getDeployedCode(string.concat(cname, ".sol:", cname)));
         return impl;
