@@ -146,7 +146,7 @@ contract L2GenesisTest is Test {
     function _testPredeployProxies(string memory path) internal {
         // Set the predeploy proxies into state
         genesis.setPredeployProxies();
-        genesis.writeStateDump();
+        genesis.writeGenesisAllocs();
 
         // 2 predeploys do not have proxies
         assertEq(getCodeCount(path, "Proxy.sol:Proxy"), genesis.PREDEPLOY_COUNT() - 2);
@@ -158,22 +158,27 @@ contract L2GenesisTest is Test {
         assertEq(getPredeployCountWithSlotSetToValue(path, Constants.PROXY_OWNER_ADDRESS, bytes32(uint256(uint160(Predeploys.PROXY_ADMIN)))), genesis.PREDEPLOY_COUNT() - 2);
 
         // For each predeploy
-        assertEq(getImplementationAtAPath(path, Predeploys.L2_TO_L1_MESSAGE_PASSER), 0xC0D3C0d3C0d3c0d3C0d3C0D3c0D3c0d3c0D30016);
-        assertEq(getImplementationAtAPath(path, Predeploys.L2_CROSS_DOMAIN_MESSENGER), 0xC0d3c0d3c0D3c0D3C0d3C0D3C0D3c0d3c0d30007);
-        assertEq(getImplementationAtAPath(path, Predeploys.L2_STANDARD_BRIDGE), 0xC0d3c0d3c0D3c0d3C0D3c0D3C0d3C0D3C0D30010);
-        assertEq(getImplementationAtAPath(path, Predeploys.L2_ERC721_BRIDGE), 0xC0D3c0d3c0d3c0d3c0D3C0d3C0D3C0D3c0d30014);
-        assertEq(getImplementationAtAPath(path, Predeploys.SEQUENCER_FEE_WALLET), 0xC0D3C0d3c0d3c0d3C0D3c0d3C0D3c0d3c0D30011);
-        assertEq(getImplementationAtAPath(path, Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY), 0xc0D3c0d3C0d3c0d3c0D3c0d3c0D3c0D3c0D30012);
-        assertEq(getImplementationAtAPath(path, Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY), 0xc0d3C0d3C0d3C0d3C0d3c0d3C0D3C0d3C0D30017);
-        assertEq(getImplementationAtAPath(path, Predeploys.L1_BLOCK_ATTRIBUTES), 0xc0d3C0D3C0D3c0D3C0D3C0d3C0D3c0D3c0d30015);
-        //assertEq(getImplementationAtAPath(path, Predeploys.GAS_PRICE_ORACLE), 0xc0d3C0d3C0d3c0D3C0D3C0d3C0d3C0D3C0D3000f);
-        assertEq(getImplementationAtAPath(path, Predeploys.DEPLOYER_WHITELIST), 0xc0d3c0d3C0d3c0D3c0d3C0D3c0d3C0d3c0D30002);
-        assertEq(getImplementationAtAPath(path, Predeploys.L1_BLOCK_NUMBER), 0xC0D3C0d3C0D3c0D3C0d3c0D3C0d3c0d3C0d30013);
-        assertEq(getImplementationAtAPath(path, Predeploys.LEGACY_MESSAGE_PASSER), 0xc0D3C0d3C0d3C0D3c0d3C0d3c0D3C0d3c0d30000);
-        assertEq(getImplementationAtAPath(path, Predeploys.PROXY_ADMIN), 0xC0d3C0D3c0d3C0d3c0d3c0D3C0D3C0d3C0D30018);
-        assertEq(getImplementationAtAPath(path, Predeploys.BASE_FEE_VAULT), 0xC0d3c0D3c0d3C0D3C0D3C0d3c0D3C0D3c0d30019);
-        //assertEq(getImplementationAtAPath(path, Predeploys.L1_FEE_VAULT), 0xc0D3c0D3C0d3c0d3c0d3C0d3c0d3C0d3C0D3001A);
-        assertEq(getImplementationAtAPath(path, Predeploys.SCHEMA_REGISTRY), 0xc0d3c0d3c0d3C0d3c0d3C0D3C0D3c0d3C0D30020);
-        assertEq(getImplementationAtAPath(path, Predeploys.EAS), 0xC0D3c0D3C0d3c0D3c0D3C0D3c0D3c0d3c0d30021);
+        assertEq(0xc0D3C0d3C0d3C0D3c0d3C0d3c0D3C0d3c0d30000, getImplementationAtAPath(path, Predeploys.LEGACY_MESSAGE_PASSER));
+        // 1: legacy, not used in OP-Stack.
+        assertEq(0xc0d3c0d3C0d3c0D3c0d3C0D3c0d3C0d3c0D30002, getImplementationAtAPath(path, Predeploys.DEPLOYER_WHITELIST));
+        // 3,4,5: legacy, not used in OP-Stack.
+        // 6: WETH9, not behind a proxy
+        assertEq(0xC0d3c0d3c0D3c0D3C0d3C0D3C0D3c0d3c0d30007, getImplementationAtAPath(path, Predeploys.L2_CROSS_DOMAIN_MESSENGER));
+        // 8,9,A,B,C,D,E: legacy, not used in OP-Stack.
+        //assertEq(0xc0d3C0d3C0d3c0D3C0D3C0d3C0d3C0D3C0D3000f, getImplementationAtAPath(path, Predeploys.GAS_PRICE_ORACLE));// TODO
+        assertEq(0xC0d3c0d3c0D3c0d3C0D3c0D3C0d3C0D3C0D30010, getImplementationAtAPath(path, Predeploys.L2_STANDARD_BRIDGE));
+        assertEq(0xC0D3C0d3c0d3c0d3C0D3c0d3C0D3c0d3c0D30011, getImplementationAtAPath(path, Predeploys.SEQUENCER_FEE_WALLET));
+        assertEq(0xc0D3c0d3C0d3c0d3c0D3c0d3c0D3c0D3c0D30012, getImplementationAtAPath(path, Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY));
+        assertEq(0xC0D3C0d3C0D3c0D3C0d3c0D3C0d3c0d3C0d30013, getImplementationAtAPath(path, Predeploys.L1_BLOCK_NUMBER));
+        assertEq(0xC0D3c0d3c0d3c0d3c0D3C0d3C0D3C0D3c0d30014, getImplementationAtAPath(path, Predeploys.L2_ERC721_BRIDGE));
+        assertEq(0xc0d3C0D3C0D3c0D3C0D3C0d3C0D3c0D3c0d30015, getImplementationAtAPath(path, Predeploys.L1_BLOCK_ATTRIBUTES));
+        assertEq(0xC0D3C0d3C0d3c0d3C0d3C0D3c0D3c0d3c0D30016, getImplementationAtAPath(path, Predeploys.L2_TO_L1_MESSAGE_PASSER));
+        assertEq(0xc0d3C0d3C0d3C0d3C0d3c0d3C0D3C0d3C0D30017, getImplementationAtAPath(path, Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY));
+        assertEq(0xC0d3C0D3c0d3C0d3c0d3c0D3C0D3C0d3C0D30018, getImplementationAtAPath(path, Predeploys.PROXY_ADMIN));
+        assertEq(0xC0d3c0D3c0d3C0D3C0D3C0d3c0D3C0D3c0d30019, getImplementationAtAPath(path, Predeploys.BASE_FEE_VAULT));
+        //assertEq(0xc0D3c0D3C0d3c0d3c0d3C0d3c0d3C0d3C0D3001A, getImplementationAtAPath(path, Predeploys.L1_FEE_VAULT));// TODO
+        // 1B,1C,1D,1E,1F: not used.
+        assertEq(0xc0d3c0d3c0d3C0d3c0d3C0D3C0D3c0d3C0D30020, getImplementationAtAPath(path, Predeploys.SCHEMA_REGISTRY));
+        assertEq(0xC0D3c0D3C0d3c0D3c0D3C0D3c0D3c0d3c0d30021, getImplementationAtAPath(path, Predeploys.EAS));
     }
 }

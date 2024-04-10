@@ -156,6 +156,7 @@ contract L2Genesis is Deployer {
     ///      LEGACY_ERC20_ETH and L1_MESSAGE_SENDER are deprecated and are not set.
     function setPredeployImplementations() internal {
         // TODO: sort by address, is this order dependent?
+        setProxyAdmin();
         setL2ToL1MessagePasser();
         setL2CrossDomainMessenger();
         setL2StandardBridge();
@@ -174,7 +175,17 @@ contract L2Genesis is Deployer {
         setGovernanceToken();
         setSchemaRegistry();
         setEAS();
-        // TODO: ProxyAdmin predeploy is missing
+        setProxyAdmin();
+    }
+
+    function setProxyAdmin() public {
+        // Note the ProxyAdmin implementation itself is behind a proxy that owns itself.
+        _setImplementationCode(Predeploys.PROXY_ADMIN);
+
+        bytes32 _ownerSlot = hex"0000000000000000000000000000000000000000000000000000000000000000";
+
+        // there is no initialize() function, so we just set the storage manually.
+        vm.store(Predeploys.PROXY_ADMIN, _ownerSlot, bytes32(uint256(uint160(cfg.proxyAdminOwner()))));
     }
 
     function setL2ToL1MessagePasser() public {
