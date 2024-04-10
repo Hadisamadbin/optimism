@@ -9,6 +9,7 @@ import { Config } from "scripts/Config.sol";
 import { Artifacts } from "scripts/Artifacts.s.sol";
 import { DeployConfig } from "scripts/DeployConfig.s.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
+import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { L2CrossDomainMessenger } from "src/L2/L2CrossDomainMessenger.sol";
 import { L2StandardBridge } from "src/L2/L2StandardBridge.sol";
 import { L2ERC721Bridge } from "src/L2/L2ERC721Bridge.sol";
@@ -102,15 +103,16 @@ contract L2Genesis is Deployer {
         dealEthToPrecompiles();
         setPredeployProxies();
         setPredeployImplementations();
-
-        // TODO: preinstalls
-        // TODO: apply upgrade-txs
+        setPreinstalls();
 
         if (cfg.fundDevAccounts()) {
             fundDevAccounts();
         }
 
         writeGenesisAllocs();
+        // Apply ecotone upgrade-txs
+        // write Ecotone allocs
+        // Pattern repeats for next upgrades: apply more upgrade-txs, output current state.
     }
 
     /// @notice Give all of the precompiles 1 wei
@@ -418,6 +420,63 @@ contract L2Genesis is Deployer {
         vm.resetNonce(address(eas));
     }
 
+    /// @dev Sets all the preinstalls.
+    function setPreinstalls() internal {
+        setPermit2();
+        setCreate2Deployer();
+        setDeterministicDeploymentProxy();
+        setEntryPoint(); // ERC 4337
+        setSafe_v130();
+        setSenderCreator();
+        setSafeSingletonFactory();
+        setMultiSend_v130();
+        setMultiCall3();
+        setSafeL2_v130();
+    }
+
+    function setPermit2() public {
+        // TODO immutables make this ugly, need to manually deploy to get the chain ID right
+//        Permit2 permit2 = new Permit2();
+
+        _setPreinstallCode(Preinstalls.Permit2, "Permit2");
+    }
+
+    function setCreate2Deployer() public {
+        _setPreinstallCode(Preinstalls.Create2Deployer, "Create2Deployer");
+    }
+
+    function setDeterministicDeploymentProxy() public {
+        _setPreinstallCode(Preinstalls.DeterministicDeploymentProxy, "DeterministicDeploymentProxy");
+    }
+
+    function setEntryPoint() public {
+        _setPreinstallCode(Preinstalls.EntryPoint, "EntryPoint");
+    }
+
+    function setSafe_v130() public {
+        _setPreinstallCode(Preinstalls.Safe_v130, "Safe_v130");
+    }
+
+    function setSenderCreator() public {
+        _setPreinstallCode(Preinstalls.SenderCreator, "SenderCreator");
+    }
+
+    function setSafeSingletonFactory() public {
+        _setPreinstallCode(Preinstalls.SafeSingletonFactory, "SafeSingletonFactory");
+    }
+
+    function setMultiSend_v130() public {
+        _setPreinstallCode(Preinstalls.MultiSend_v130, "MultiSend_v130");
+    }
+
+    function setMultiCall3() public {
+        _setPreinstallCode(Preinstalls.MultiCall3, "MultiCall3");
+    }
+
+    function setSafeL2_v130() public {
+        _setPreinstallCode(Preinstalls.SafeL2_v130, "SafeL2_v130");
+    }
+
     /// @notice Returns true if the address is not proxied.
     function _notProxied(address _addr) internal pure returns (bool) {
         return _addr == Predeploys.GOVERNANCE_TOKEN || _addr == Predeploys.WETH9;
@@ -450,6 +509,12 @@ contract L2Genesis is Deployer {
         console.log("Setting %s implementation at: %s", cname, impl);
         vm.etch(impl, vm.getDeployedCode(string.concat(cname, ".sol:", cname)));
         return impl;
+    }
+
+    /// @notice Sets the bytecode in state
+    function _setPreinstallCode(address _addr, string memory _name) internal {
+        console.log("Setting %s preinstall code at: %s", _name, _addr);
+        vm.etch(_addr, vm.getDeployedCode(string.concat(_name, ".sol:", _name)));
     }
 
     /// @notice Writes the genesis allocs, i.e. the state dump, to disk

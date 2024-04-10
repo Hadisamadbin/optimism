@@ -2,6 +2,7 @@
 pragma solidity 0.8.15;
 
 import { Predeploys } from "src/libraries/Predeploys.sol";
+import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { L2CrossDomainMessenger } from "src/L2/L2CrossDomainMessenger.sol";
 import { L2StandardBridge } from "src/L2/L2StandardBridge.sol";
 import { L2ToL1MessagePasser } from "src/L2/L2ToL1MessagePasser.sol";
@@ -193,6 +194,7 @@ contract Setup {
         vm.prank(governanceToken.owner());
         governanceToken.transferOwnership(finalSystemOwner);
 
+        // L2 predeploys
         vm.label(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY, "OptimismMintableERC20Factory");
         vm.label(Predeploys.L2_STANDARD_BRIDGE, "L2StandardBridge");
         vm.label(Predeploys.L2_CROSS_DOMAIN_MESSENGER, "L2CrossDomainMessenger");
@@ -207,5 +209,21 @@ contract Setup {
         vm.label(Predeploys.GOVERNANCE_TOKEN, "GovernanceToken");
         vm.label(Predeploys.EAS, "EAS");
         vm.label(Predeploys.SCHEMA_REGISTRY, "SchemaRegistry");
+
+        // L2 Preinstalls
+        vm.label(Preinstalls.MultiCall3, "MultiCall3");
+        vm.label(Preinstalls.Create2Deployer, "Create2Deployer");
+        vm.label(Preinstalls.Safe_v130, "Safe_v130");
+        vm.label(Preinstalls.SafeL2_v130, "SafeL2_v130");
+        vm.label(Preinstalls.MultiSendCallOnly_v130, "MultiSendCallOnly_v130");
+        vm.label(Preinstalls.SafeSingletonFactory, "SafeSingletonFactory");
+        vm.label(Preinstalls.DeterministicDeploymentProxy, "DeterministicDeploymentProxy");
+        vm.label(Preinstalls.MultiSend_v130, "MultiSend_v130");
+        vm.label(Preinstalls.Permit2, "Permit2");
+        vm.label(Preinstalls.SenderCreator, "SenderCreator");
+        vm.label(Preinstalls.EntryPoint, "EntryPoint");
+
+        // from upgrade txs
+        vm.label(Preinstalls.BeaconBlockRoots, "BeaconBlockRoots");
     }
 }
