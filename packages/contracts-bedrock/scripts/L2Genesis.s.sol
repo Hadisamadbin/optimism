@@ -103,11 +103,14 @@ contract L2Genesis is Deployer {
         setPredeployProxies();
         setPredeployImplementations();
 
+        // TODO: preinstalls
+        // TODO: apply upgrade-txs
+
         if (cfg.fundDevAccounts()) {
             fundDevAccounts();
         }
 
-        writeStateDump();
+        writeGenesisAllocs();
     }
 
     /// @notice Give all of the precompiles 1 wei
@@ -152,6 +155,7 @@ contract L2Genesis is Deployer {
     ///      sets the deployed bytecode at their expected predeploy address.
     ///      LEGACY_ERC20_ETH and L1_MESSAGE_SENDER are deprecated and are not set.
     function setPredeployImplementations() internal {
+        // TODO: sort by address, is this order dependent?
         setL2ToL1MessagePasser();
         setL2CrossDomainMessenger();
         setL2StandardBridge();
@@ -170,6 +174,7 @@ contract L2Genesis is Deployer {
         setGovernanceToken();
         setSchemaRegistry();
         setEAS();
+        // TODO: ProxyAdmin predeploy is missing
     }
 
     function setL2ToL1MessagePasser() public {
@@ -434,8 +439,8 @@ contract L2Genesis is Deployer {
         return impl;
     }
 
-    /// @notice Writes the state dump to disk
-    function writeStateDump() public {
+    /// @notice Writes the genesis allocs, i.e. the state dump, to disk
+    function writeGenesisAllocs() public {
         /// Reset so its not included state dump
         vm.etch(address(cfg), "");
         vm.etch(msg.sender, "");
