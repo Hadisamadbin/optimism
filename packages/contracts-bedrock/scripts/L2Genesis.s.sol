@@ -155,27 +155,29 @@ contract L2Genesis is Deployer {
     ///      sets the deployed bytecode at their expected predeploy address.
     ///      LEGACY_ERC20_ETH and L1_MESSAGE_SENDER are deprecated and are not set.
     function setPredeployImplementations() internal {
-        // TODO: sort by address, is this order dependent?
-        setProxyAdmin();
-        setL2ToL1MessagePasser();
-        setL2CrossDomainMessenger();
-        setL2StandardBridge();
-        setL2ERC721Bridge();
-        setSequencerFeeVault();
-        setOptimismMintableERC20Factory();
-        setOptimismMintableERC721Factory();
-        setL1Block();
-        setGasPriceOracle();
-        setDeployerWhitelist();
-        setWETH9();
-        setL1BlockNumber();
-        setLegacyMessagePasser();
-        setBaseFeeVault();
-        setL1FeeVault();
-        setGovernanceToken();
-        setSchemaRegistry();
-        setEAS();
-        setProxyAdmin();
+        setLegacyMessagePasser(); // 0
+        // 01: legacy, not used in OP-Stack
+        setDeployerWhitelist(); // 2
+        // 3,4,5: legacy, not used in OP-Stack.
+        setWETH9();  // 6: WETH9 (not behind a proxy)
+        setL2CrossDomainMessenger(); // 7
+        // 8,9,A,B,C,D,E: legacy, not used in OP-Stack.
+        setGasPriceOracle(); // f
+        setL2StandardBridge(); // 10
+        setSequencerFeeVault(); // 11
+        setOptimismMintableERC20Factory(); // 12
+        setL1BlockNumber(); // 13
+        setL2ERC721Bridge(); // 14
+        setL1Block(); // 15
+        setL2ToL1MessagePasser(); // 16
+        setOptimismMintableERC721Factory(); // 17
+        setProxyAdmin(); // 18
+        setBaseFeeVault(); // 19
+        setL1FeeVault(); // 1A
+        // 1B,1C,1D,1E,1F: not used.
+        setSchemaRegistry(); // 20
+        setEAS(); // 21
+        setGovernanceToken(); // 42
     }
 
     function setProxyAdmin() public {
