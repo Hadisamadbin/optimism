@@ -186,7 +186,7 @@ contract L2Genesis is Deployer {
         // Note the ProxyAdmin implementation itself is behind a proxy that owns itself.
         _setImplementationCode(Predeploys.PROXY_ADMIN);
 
-        bytes32 _ownerSlot = hex"0000000000000000000000000000000000000000000000000000000000000000";
+        bytes32 _ownerSlot = bytes32(0);
 
         // there is no initialize() function, so we just set the storage manually.
         vm.store(Predeploys.PROXY_ADMIN, _ownerSlot, bytes32(uint256(uint160(cfg.proxyAdminOwner()))));
