@@ -406,43 +406,43 @@ contract L2Genesis is Deployer {
         // TODO immutables make this ugly, need to manually deploy to get the chain ID right
 //        Permit2 permit2 = new Permit2();
 
-        _setPreinstallCode(Preinstalls.Permit2, "Permit2");
+        _setPreinstallCode(Preinstalls.Permit2);
     }
 
     function setCreate2Deployer() public {
-        _setPreinstallCode(Preinstalls.Create2Deployer, "Create2Deployer");
+        _setPreinstallCode(Preinstalls.Create2Deployer);
     }
 
     function setDeterministicDeploymentProxy() public {
-        _setPreinstallCode(Preinstalls.DeterministicDeploymentProxy, "DeterministicDeploymentProxy");
+        _setPreinstallCode(Preinstalls.DeterministicDeploymentProxy);
     }
 
     function setEntryPoint() public {
-        _setPreinstallCode(Preinstalls.EntryPoint, "EntryPoint");
+        _setPreinstallCode(Preinstalls.EntryPoint);
     }
 
     function setSafe_v130() public {
-        _setPreinstallCode(Preinstalls.Safe_v130, "Safe_v130");
+        _setPreinstallCode(Preinstalls.Safe_v130);
     }
 
     function setSenderCreator() public {
-        _setPreinstallCode(Preinstalls.SenderCreator, "SenderCreator");
+        _setPreinstallCode(Preinstalls.SenderCreator);
     }
 
     function setSafeSingletonFactory() public {
-        _setPreinstallCode(Preinstalls.SafeSingletonFactory, "SafeSingletonFactory");
+        _setPreinstallCode(Preinstalls.SafeSingletonFactory);
     }
 
     function setMultiSend_v130() public {
-        _setPreinstallCode(Preinstalls.MultiSend_v130, "MultiSend_v130");
+        _setPreinstallCode(Preinstalls.MultiSend_v130);
     }
 
     function setMultiCall3() public {
-        _setPreinstallCode(Preinstalls.MultiCall3, "MultiCall3");
+        _setPreinstallCode(Preinstalls.MultiCall3);
     }
 
     function setSafeL2_v130() public {
-        _setPreinstallCode(Preinstalls.SafeL2_v130, "SafeL2_v130");
+        _setPreinstallCode(Preinstalls.SafeL2_v130);
     }
 
     /// @notice Sets the bytecode in state
@@ -455,9 +455,10 @@ contract L2Genesis is Deployer {
     }
 
     /// @notice Sets the bytecode in state
-    function _setPreinstallCode(address _addr, string memory _name) internal {
-        console.log("Setting %s preinstall code at: %s", _name, _addr);
-        vm.etch(_addr, vm.getDeployedCode(string.concat(_name, ".sol:", _name)));
+    function _setPreinstallCode(address _addr) internal {
+        string memory cname = Preinstalls.getName(_addr);
+        console.log("Setting %s preinstall code at: %s", cname, _addr);
+        vm.etch(_addr, Preinstalls.getDeployedCode(_addr));
     }
 
     /// @notice Writes the genesis allocs, i.e. the state dump, to disk
