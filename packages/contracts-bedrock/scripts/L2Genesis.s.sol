@@ -458,7 +458,7 @@ contract L2Genesis is Deployer {
     function _setPreinstallCode(address _addr) internal {
         string memory cname = Preinstalls.getName(_addr);
         console.log("Setting %s preinstall code at: %s", cname, _addr);
-        vm.etch(_addr, Preinstalls.getDeployedCode(_addr));
+        vm.etch(_addr, Preinstalls.getDeployedCode(_addr, cfg.l2ChainID()));
     }
 
     /// @notice Writes the genesis allocs, i.e. the state dump, to disk

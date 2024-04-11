@@ -3,6 +3,7 @@ pragma solidity 0.8.15;
 
 import { CommonTest } from "test/setup/CommonTest.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
+import { Bytes } from "src/libraries/Bytes.sol";
 
 
 interface IEIP712 {
@@ -22,6 +23,22 @@ contract PreinstallsTest is CommonTest {
         bytes memory encoded = abi.encode(typeHash, nameHash, chainId, Preinstalls.Permit2);
         bytes32 expectedDomainSeparator = keccak256(encoded);
         assertEq(domainSeparator, expectedDomainSeparator, "Domain separator mismatch");
+        assertEq(chainId, uint256(31337));
+        assertEq(domainSeparator, bytes32(0x4d553c58ae79a6c4ba64f0e690a5d1cd2deff8c6b91cf38300e0f2b76f9ee346));
+        // Warning the Permit2 domain separator as cached in the DeployPermit2.sol bytecode is incorrect.
+    }
+
+    function test_permit2_templating() external {
+        bytes memory customCode = Preinstalls.getPermit2Code(1234);
+        assertNotEq(customCode.length, 0, "must have code");
+        assertEq(uint256(bytes32(Bytes.slice(customCode, 6945, 32))), uint256(1234), "expecting custom chain ID");
+        assertEq(bytes32(Bytes.slice(customCode, 6983, 32)), bytes32(0x6cda538cafce36292a6ef27740629597f85f6716f5694d26d5c59fc1d07cfd95), "expecting custom domain separator");
+
+        bytes memory defaultCode = Preinstalls.getPermit2Code(1);
+        assertNotEq(defaultCode.length, 0, "must have code");
+        assertEq(uint256(bytes32(Bytes.slice(defaultCode, 6945, 32))), uint256(1), "expecting default chain ID");
+        assertEq(bytes32(Bytes.slice(defaultCode, 6983, 32)), bytes32(0x866a5aba21966af95d6c7ab78eb2b2fc913915c28be3b9aa07cc04ff903e3f28), "expecting default domain separator");
+        assertEq(defaultCode, Preinstalls.Permit2TemplateCode, "template is using chain ID 1");
     }
 
     //////////////////////////////////////////////////////

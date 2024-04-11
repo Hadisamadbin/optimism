@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
@@ -137,4 +138,28 @@ func PerformUpgradeTxs(db *state.MemoryStateDB) error {
 		return fmt.Errorf("failed to apply ecotone upgrade txs: %w", err)
 	}
 	return nil
+}
+
+// From Permit2:
+//
+//	    address constant PERMIT2_ADDRESS = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
+//	    bytes32 private constant _HASHED_NAME = keccak256("Permit2");
+//	    bytes32 private constant _TYPE_HASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
+//
+//	    uint256 private immutable _CACHED_CHAIN_ID = block.chainid;
+//	    bytes32 private immutable _CACHED_DOMAIN_SEPARATOR = _buildDomainSeparator(_TYPE_HASH, _HASHED_NAME);
+//
+//		   function _buildDomainSeparator(bytes32 typeHash, bytes32 nameHash) private view returns (bytes32) {
+//		       return keccak256(abi.encode(typeHash, nameHash, block.chainid, address(this)));
+//		   }
+func Permit2DomainSeparator(chainID [32]byte) [32]byte {
+	hashedName := crypto.Keccak256Hash([]byte("Permit2"))
+	typeHash := crypto.Keccak256Hash([]byte("EIP712Domain(string name,uint256 chainId,address verifyingContract)"))
+	thisAddr := common.HexToAddress("0x000000000022D473030F116dDEE9F6B43aC78BA3")
+	var abiEncoded [32 * 4]byte
+	copy(abiEncoded[32*0:32*1], typeHash[:])
+	copy(abiEncoded[32*1:32*2], hashedName[:])
+	copy(abiEncoded[32*2:32*3], chainID[:])
+	copy(abiEncoded[32*3+(32-20):32*4], thisAddr[:])
+	return crypto.Keccak256Hash(abiEncoded[:])
 }
