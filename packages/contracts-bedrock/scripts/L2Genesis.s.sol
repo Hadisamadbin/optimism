@@ -164,7 +164,7 @@ contract L2Genesis is Deployer {
         _setImplementationCode(Predeploys.L2_TO_L1_MESSAGE_PASSER);
     }
 
-    /// @notice This predeploy is following the saftey invariant #1.
+    /// @notice This predeploy is following the safety invariant #1.
     function setL2CrossDomainMessenger() public {
         address impl = _setImplementationCode(Predeploys.L2_CROSS_DOMAIN_MESSENGER);
 
@@ -177,7 +177,7 @@ contract L2Genesis is Deployer {
         });
     }
 
-    /// @notice This predeploy is following the saftey invariant #1.
+    /// @notice This predeploy is following the safety invariant #1.
     function setL2StandardBridge() public {
         address impl = _setImplementationCode(Predeploys.L2_STANDARD_BRIDGE);
 
@@ -190,7 +190,7 @@ contract L2Genesis is Deployer {
         });
     }
 
-    /// @notice This predeploy is following the saftey invariant #1.
+    /// @notice This predeploy is following the safety invariant #1.
     function setL2ERC721Bridge() public {
         address impl = _setImplementationCode(Predeploys.L2_ERC721_BRIDGE);
 
@@ -203,7 +203,7 @@ contract L2Genesis is Deployer {
         });
     }
 
-    /// @notice This predeploy is following the saftey invariant #2,
+    /// @notice This predeploy is following the safety invariant #2,
     function setSequencerFeeVault() public {
         SequencerFeeVault vault = new SequencerFeeVault({
             _recipient: cfg.sequencerFeeVaultRecipient(),
@@ -220,7 +220,7 @@ contract L2Genesis is Deployer {
         vm.resetNonce(address(vault));
     }
 
-    /// @notice This predeploy is following the saftey invariant #1.
+    /// @notice This predeploy is following the safety invariant #1.
     function setOptimismMintableERC20Factory() public {
         address impl = _setImplementationCode(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY);
 
@@ -233,7 +233,7 @@ contract L2Genesis is Deployer {
         });
     }
 
-    /// @notice This predeploy is following the saftey invariant #2,
+    /// @notice This predeploy is following the safety invariant #2,
     function setOptimismMintableERC721Factory() public {
         OptimismMintableERC721Factory factory = new OptimismMintableERC721Factory({
             _bridge: Predeploys.L2_ERC721_BRIDGE,
@@ -249,22 +249,22 @@ contract L2Genesis is Deployer {
         vm.resetNonce(address(factory));
     }
 
-    /// @notice This predeploy is following the saftey invariant #1.
+    /// @notice This predeploy is following the safety invariant #1.
     function setL1Block() public {
         _setImplementationCode(Predeploys.L1_BLOCK_ATTRIBUTES);
     }
 
-    /// @notice This predeploy is following the saftey invariant #1.
+    /// @notice This predeploy is following the safety invariant #1.
     function setGasPriceOracle() public {
         _setImplementationCode(Predeploys.GAS_PRICE_ORACLE);
     }
 
-    /// @notice This predeploy is following the saftey invariant #1.
+    /// @notice This predeploy is following the safety invariant #1.
     function setDeployerWhitelist() public {
         _setImplementationCode(Predeploys.DEPLOYER_WHITELIST);
     }
 
-    /// @notice This predeploy is following the saftey invariant #1.
+    /// @notice This predeploy is following the safety invariant #1.
     ///         This contract is NOT proxied and the state that is set
     ///         in the constructor is set manually.
     function setWETH9() public {
@@ -294,17 +294,17 @@ contract L2Genesis is Deployer {
         );
     }
 
-    /// @notice This predeploy is following the saftey invariant #1.
+    /// @notice This predeploy is following the safety invariant #1.
     function setL1BlockNumber() public {
         _setImplementationCode(Predeploys.L1_BLOCK_NUMBER);
     }
 
-    /// @notice This predeploy is following the saftey invariant #1.
+    /// @notice This predeploy is following the safety invariant #1.
     function setLegacyMessagePasser() public {
         _setImplementationCode(Predeploys.LEGACY_MESSAGE_PASSER);
     }
 
-    /// @notice This predeploy is following the saftey invariant #2.
+    /// @notice This predeploy is following the safety invariant #2.
     function setBaseFeeVault() public {
         BaseFeeVault vault = new BaseFeeVault({
             _recipient: cfg.baseFeeVaultRecipient(),
@@ -321,7 +321,7 @@ contract L2Genesis is Deployer {
         vm.resetNonce(address(vault));
     }
 
-    /// @notice This predeploy is following the saftey invariant #2.
+    /// @notice This predeploy is following the safety invariant #2.
     function setL1FeeVault() public {
         L1FeeVault vault = new L1FeeVault({
             _recipient: cfg.l1FeeVaultRecipient(),
@@ -338,7 +338,7 @@ contract L2Genesis is Deployer {
         vm.resetNonce(address(vault));
     }
 
-    /// @notice This predeploy is following the saftey invariant #2.
+    /// @notice This predeploy is following the safety invariant #2.
     function setGovernanceToken() public {
         if (!cfg.enableGovernance()) {
             console.log("Governance not enabled, skipping setting governanace token");
@@ -362,12 +362,12 @@ contract L2Genesis is Deployer {
         vm.resetNonce(address(token));
     }
 
-    /// @notice This predeploy is following the saftey invariant #1.
+    /// @notice This predeploy is following the safety invariant #1.
     function setSchemaRegistry() public {
         _setImplementationCode(Predeploys.SCHEMA_REGISTRY);
     }
 
-    /// @notice This predeploy is following the saftey invariant #2,
+    /// @notice This predeploy is following the safety invariant #2,
     ///         It uses low level create to deploy the contract due to the code
     ///         having immutables and being a different compiler version.
     function setEAS() public {
