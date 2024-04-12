@@ -86,7 +86,7 @@ library Preinstalls {
         if(_addr == SenderCreator) return SenderCreatorCode;
         if(_addr == EntryPoint) return EntryPointCode;
 
-        if(_addr == Permit2) getPermit2Code(_chainID);
+        if(_addr == Permit2) return getPermit2Code(_chainID);
         if(_addr == BeaconBlockRoots) return BeaconBlockRootsCode;
 
         revert("unknown preinstall");

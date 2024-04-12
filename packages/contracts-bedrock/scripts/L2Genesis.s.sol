@@ -404,12 +404,13 @@ contract L2Genesis is Deployer {
 
     function activateEcotone() public {
         bool hasBeaconBlockRoots = false;
+        address addr = Preinstalls.BeaconBlockRoots;
         assembly {
-            hasBeaconBlockRoots := extcodesize(Preinstalls.BeaconBlockRoots)
+            hasBeaconBlockRoots := extcodesize(addr)
         }
         require(hasBeaconBlockRoots, "must have beacon-block-roots contract");
         console.log("Activating ecotone in L1Block contract");
-        vm.prank(L1Block.DEPOSITOR_ACCOUNT);
+        vm.prank(L1Block(Predeploys.L1_BLOCK_ATTRIBUTES).DEPOSITOR_ACCOUNT());
         L1Block(Predeploys.L1_BLOCK_ATTRIBUTES).setL1BlockValuesEcotone();
     }
 
