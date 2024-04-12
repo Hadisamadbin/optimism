@@ -25,6 +25,7 @@ import { AnchorStateRegistry } from "src/dispute/AnchorStateRegistry.sol";
 import { L1CrossDomainMessenger } from "src/L1/L1CrossDomainMessenger.sol";
 import { DeployConfig } from "scripts/DeployConfig.s.sol";
 import { Deploy } from "scripts/Deploy.s.sol";
+import { L2Genesis } from "scripts/L2Genesis.s.sol";
 import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
 import { ProtocolVersions } from "src/L1/ProtocolVersions.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
@@ -51,6 +52,8 @@ contract Setup {
     /// @notice The address of the Deploy contract. Set into state with `etch` to avoid
     ///         mutating any nonces. MUST not have constructor logic.
     Deploy internal constant deploy = Deploy(address(uint160(uint256(keccak256(abi.encode("optimism.deploy"))))));
+
+    L2Genesis internal constant l2Genesis = L2Genesis(address(uint160(uint256(keccak256(abi.encode("optimism.deploy"))))));
 
     OptimismPortal optimismPortal;
     OptimismPortal2 optimismPortal2;
@@ -93,6 +96,10 @@ contract Setup {
         vm.etch(address(deploy), vm.getDeployedCode("Deploy.s.sol:Deploy"));
         vm.allowCheatcodes(address(deploy));
         deploy.setUp();
+
+        vm.etch(address(l2Genesis), vm.getDeployedCode("L2Genesis.s.sol:L2Genesis"));
+        vm.allowCheatcodes(address(l2Genesis));
+        l2Genesis.setUp();
     }
 
     /// @dev Sets up the L1 contracts.
@@ -156,38 +163,7 @@ contract Setup {
 
     /// @dev Sets up the L2 contracts. Depends on `L1()` being called first.
     function L2() public {
-        string memory allocsPath = string.concat(vm.projectRoot(), "/.testdata/genesis.json");
-        if (vm.isFile(allocsPath) == false) {
-            string[] memory args = new string[](3);
-            args[0] = Executables.bash;
-            args[1] = "-c";
-            args[2] = string.concat(vm.projectRoot(), "/scripts/generate-l2-genesis.sh");
-            Vm.FfiResult memory result = vm.tryFfi(args);
-            if (result.exitCode != 0) {
-                revert FfiFailed(
-                    string.concat(
-                        "FFI call to generate genesis.json failed with exit code: ",
-                        string(abi.encodePacked(result.exitCode)),
-                        ".\nCommand: ",
-                        Executables.bash,
-                        " -c ",
-                        vm.projectRoot(),
-                        "/scripts/generate-l2-genesis.sh",
-                        ".\nOutput: ",
-                        string(result.stdout),
-                        "\nError: ",
-                        string(result.stderr)
-                    )
-                );
-            }
-        }
-
-        // Prevent race condition where the genesis.json file is not yet created
-        while (vm.isFile(allocsPath) == false) {
-            vm.sleep(1);
-        }
-
-        vm.loadAllocs(allocsPath);
+        l2Genesis.runInProcess();
 
         // Set the governance token's owner to be the final system owner
         address finalSystemOwner = deploy.cfg().finalSystemOwner();
@@ -195,35 +171,40 @@ contract Setup {
         governanceToken.transferOwnership(finalSystemOwner);
 
         // L2 predeploys
-        vm.label(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY, "OptimismMintableERC20Factory");
-        vm.label(Predeploys.L2_STANDARD_BRIDGE, "L2StandardBridge");
-        vm.label(Predeploys.L2_CROSS_DOMAIN_MESSENGER, "L2CrossDomainMessenger");
-        vm.label(Predeploys.L2_TO_L1_MESSAGE_PASSER, "L2ToL1MessagePasser");
-        vm.label(Predeploys.SEQUENCER_FEE_WALLET, "SequencerFeeVault");
-        vm.label(Predeploys.L2_ERC721_BRIDGE, "L2ERC721Bridge");
-        vm.label(Predeploys.BASE_FEE_VAULT, "BaseFeeVault");
-        vm.label(Predeploys.L1_FEE_VAULT, "L1FeeVault");
-        vm.label(Predeploys.L1_BLOCK_ATTRIBUTES, "L1Block");
-        vm.label(Predeploys.GAS_PRICE_ORACLE, "GasPriceOracle");
-        vm.label(Predeploys.LEGACY_MESSAGE_PASSER, "LegacyMessagePasser");
-        vm.label(Predeploys.GOVERNANCE_TOKEN, "GovernanceToken");
-        vm.label(Predeploys.EAS, "EAS");
-        vm.label(Predeploys.SCHEMA_REGISTRY, "SchemaRegistry");
+        labelPredeploy(Predeploys.L2_STANDARD_BRIDGE);
+        labelPredeploy(Predeploys.L2_CROSS_DOMAIN_MESSENGER);
+        labelPredeploy(Predeploys.L2_TO_L1_MESSAGE_PASSER);
+        labelPredeploy(Predeploys.SEQUENCER_FEE_WALLET);
+        labelPredeploy(Predeploys.L2_ERC721_BRIDGE);
+        labelPredeploy(Predeploys.BASE_FEE_VAULT);
+        labelPredeploy(Predeploys.L1_FEE_VAULT);
+        labelPredeploy(Predeploys.L1_BLOCK_ATTRIBUTES);
+        labelPredeploy(Predeploys.GAS_PRICE_ORACLE);
+        labelPredeploy(Predeploys.LEGACY_MESSAGE_PASSER);
+        labelPredeploy(Predeploys.GOVERNANCE_TOKEN);
+        labelPredeploy(Predeploys.EAS);
+        labelPredeploy(Predeploys.SCHEMA_REGISTRY);
 
         // L2 Preinstalls
-        vm.label(Preinstalls.MultiCall3, "MultiCall3");
-        vm.label(Preinstalls.Create2Deployer, "Create2Deployer");
-        vm.label(Preinstalls.Safe_v130, "Safe_v130");
-        vm.label(Preinstalls.SafeL2_v130, "SafeL2_v130");
-        vm.label(Preinstalls.MultiSendCallOnly_v130, "MultiSendCallOnly_v130");
-        vm.label(Preinstalls.SafeSingletonFactory, "SafeSingletonFactory");
-        vm.label(Preinstalls.DeterministicDeploymentProxy, "DeterministicDeploymentProxy");
-        vm.label(Preinstalls.MultiSend_v130, "MultiSend_v130");
-        vm.label(Preinstalls.Permit2, "Permit2");
-        vm.label(Preinstalls.SenderCreator, "SenderCreator");
-        vm.label(Preinstalls.EntryPoint, "EntryPoint");
+        labelPreinstall(Preinstalls.MultiCall3);
+        labelPreinstall(Preinstalls.Create2Deployer);
+        labelPreinstall(Preinstalls.Safe_v130);
+        labelPreinstall(Preinstalls.SafeL2_v130);
+        labelPreinstall(Preinstalls.MultiSendCallOnly_v130);
+        labelPreinstall(Preinstalls.SafeSingletonFactory);
+        labelPreinstall(Preinstalls.DeterministicDeploymentProxy);
+        labelPreinstall(Preinstalls.MultiSend_v130);
+        labelPreinstall(Preinstalls.Permit2);
+        labelPreinstall(Preinstalls.SenderCreator);
+        labelPreinstall(Preinstalls.EntryPoint);
+        labelPreinstall(Preinstalls.BeaconBlockRoots);
+    }
 
-        // from upgrade txs
-        vm.label(Preinstalls.BeaconBlockRoots, "BeaconBlockRoots");
+    function labelPredeploy(address _addr) internal {
+        vm.label(_addr, Predeploys.getName(_addr));
+    }
+
+    function labelPreinstall(address _addr) internal {
+        vm.label(_addr, Preinstalls.getName(_addr));
     }
 }

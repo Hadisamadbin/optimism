@@ -41,6 +41,10 @@ contract L2Genesis is Deployer {
 
     uint80 internal constant DEV_ACCOUNT_FUND_AMT = 10_000 ether;
 
+    address payable internal deployedL1CrossDomainMessengerProxy;
+    address payable internal deployedL1StandardBridgeProxy;
+    address payable internal deployedL1ERC721BridgeProxy;
+
     /// @notice Default Anvil dev accounts. Only funded if `cfg.fundDevAccounts == true`.
     address[10] internal devAccounts = [
         0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266,
@@ -63,12 +67,24 @@ contract L2Genesis is Deployer {
     ///      loads in the addresses for the L1 contract deployments.
     function setUp() public override {
         super.setUp();
+
+        // TODO: currently loading from L1 deployment artifacts, but this should just be a direct input,
+        // and only fallback to artifacts when chainID matches the foundry test chain ID.
+        deployedL1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
+        deployedL1StandardBridgeProxy = mustGetAddress("L1StandardBridgeProxy");
+        deployedL1ERC721BridgeProxy = mustGetAddress("L1ERC721BridgeProxy");
     }
 
     /// @dev Sets the precompiles, proxies, and the implementation accounts to be `vm.dumpState`
     ///      to generate a L2 genesis alloc.
     /// @notice The alloc object is sorted numerically by address.
     function run() public {
+        runInProcess();
+
+        writeGenesisAllocs();
+    }
+
+    function runInProcess() public {
         dealEthToPrecompiles();
         setPredeployProxies();
         setPredeployImplementations();
@@ -78,8 +94,6 @@ contract L2Genesis is Deployer {
         if (cfg.fundDevAccounts()) {
             fundDevAccounts();
         }
-
-        writeGenesisAllocs();
     }
 
     /// @notice Give all of the precompiles 1 wei
@@ -172,7 +186,7 @@ contract L2Genesis is Deployer {
         });
 
         L2CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER).initialize({
-            _l1CrossDomainMessenger: L1CrossDomainMessenger(mustGetAddress("L1CrossDomainMessengerProxy"))
+            _l1CrossDomainMessenger: L1CrossDomainMessenger(deployedL1CrossDomainMessengerProxy)
         });
     }
 
@@ -185,7 +199,7 @@ contract L2Genesis is Deployer {
         });
 
         L2StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE)).initialize({
-            _otherBridge: L1StandardBridge(mustGetAddress("L1StandardBridgeProxy"))
+            _otherBridge: L1StandardBridge(deployedL1StandardBridgeProxy)
         });
     }
 
@@ -198,7 +212,7 @@ contract L2Genesis is Deployer {
         });
 
         L2ERC721Bridge(Predeploys.L2_ERC721_BRIDGE).initialize({
-            _l1ERC721Bridge: payable(mustGetAddress("L1ERC721BridgeProxy"))
+            _l1ERC721Bridge: payable(deployedL1ERC721BridgeProxy)
         });
     }
 

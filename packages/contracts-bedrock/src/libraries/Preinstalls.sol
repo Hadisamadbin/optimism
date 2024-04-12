@@ -41,7 +41,7 @@ library Preinstalls {
 
     /// @notice Address of beacon block roots contract, introduced in the Cancun upgrade.
     ///         See BEACON_ROOTS_ADDRESS in EIP-4788.
-    ///         This contract is introduced in L2 through an Ecotone upgrade transaction.
+    ///         This contract is introduced in L2 through an Ecotone upgrade transaction, if not already in genesis.
     address internal constant BeaconBlockRoots = 0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02;
 
     // @notice Permit2 code is templated. The template is a copy of the Mainnet Ethereum L1 Permit2 deployment.
