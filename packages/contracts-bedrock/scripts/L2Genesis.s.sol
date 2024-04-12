@@ -11,6 +11,7 @@ import { DeployConfig } from "scripts/DeployConfig.s.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { L2CrossDomainMessenger } from "src/L2/L2CrossDomainMessenger.sol";
+import { L1Block } from "src/L2/L1Block.sol";
 import { L2StandardBridge } from "src/L2/L2StandardBridge.sol";
 import { L2ERC721Bridge } from "src/L2/L2ERC721Bridge.sol";
 import { SequencerFeeVault } from "src/L2/SequencerFeeVault.sol";
@@ -72,15 +73,13 @@ contract L2Genesis is Deployer {
         setPredeployProxies();
         setPredeployImplementations();
         setPreinstalls();
+        activateEcotone();
 
         if (cfg.fundDevAccounts()) {
             fundDevAccounts();
         }
 
         writeGenesisAllocs();
-        // Apply ecotone upgrade-txs
-        // write Ecotone allocs
-        // Pattern repeats for next upgrades: apply more upgrade-txs, output current state.
     }
 
     /// @notice Give all of the precompiles 1 wei
@@ -390,59 +389,28 @@ contract L2Genesis is Deployer {
 
     /// @dev Sets all the preinstalls.
     function setPreinstalls() internal {
-        setPermit2();
-        setCreate2Deployer();
-        setDeterministicDeploymentProxy();
-        setEntryPoint(); // ERC 4337
-        setSafe_v130();
-        setSenderCreator();
-        setSafeSingletonFactory();
-        setMultiSend_v130();
-        setMultiCall3();
-        setSafeL2_v130();
-    }
-
-    function setPermit2() public {
-        // TODO immutables make this ugly, need to manually deploy to get the chain ID right
-//        Permit2 permit2 = new Permit2();
-
         _setPreinstallCode(Preinstalls.Permit2);
-    }
-
-    function setCreate2Deployer() public {
         _setPreinstallCode(Preinstalls.Create2Deployer);
-    }
-
-    function setDeterministicDeploymentProxy() public {
         _setPreinstallCode(Preinstalls.DeterministicDeploymentProxy);
-    }
-
-    function setEntryPoint() public {
-        _setPreinstallCode(Preinstalls.EntryPoint);
-    }
-
-    function setSafe_v130() public {
+        _setPreinstallCode(Preinstalls.EntryPoint); // ERC 4337
         _setPreinstallCode(Preinstalls.Safe_v130);
-    }
-
-    function setSenderCreator() public {
         _setPreinstallCode(Preinstalls.SenderCreator);
-    }
-
-    function setSafeSingletonFactory() public {
         _setPreinstallCode(Preinstalls.SafeSingletonFactory);
-    }
-
-    function setMultiSend_v130() public {
         _setPreinstallCode(Preinstalls.MultiSend_v130);
-    }
-
-    function setMultiCall3() public {
         _setPreinstallCode(Preinstalls.MultiCall3);
+        _setPreinstallCode(Preinstalls.SafeL2_v130);
+        _setPreinstallCode(Preinstalls.BeaconBlockRoots);
     }
 
-    function setSafeL2_v130() public {
-        _setPreinstallCode(Preinstalls.SafeL2_v130);
+    function activateEcotone() public {
+        bool hasBeaconBlockRoots = false;
+        assembly {
+            hasBeaconBlockRoots := extcodesize(Preinstalls.BeaconBlockRoots)
+        }
+        require(hasBeaconBlockRoots, "must have beacon-block-roots contract");
+        console.log("Activating ecotone in L1Block contract");
+        vm.prank(L1Block.DEPOSITOR_ACCOUNT);
+        L1Block(Predeploys.L1_BLOCK_ATTRIBUTES).setL1BlockValuesEcotone();
     }
 
     /// @notice Sets the bytecode in state
