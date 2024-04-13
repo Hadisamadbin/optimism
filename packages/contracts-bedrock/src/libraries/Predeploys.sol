@@ -113,7 +113,6 @@ library Predeploys {
 
     /// @notice Returns true if the predeploy is not proxied.
     function notProxied(address _addr) internal pure returns (bool) {
-        require(isSupportedPredeploy(_addr), "no proxy information for unsupported predeploys");
         return _addr == GOVERNANCE_TOKEN || _addr == WETH9;
     }
 

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+import { console2 as console } from "forge-std/console2.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { L2CrossDomainMessenger } from "src/L2/L2CrossDomainMessenger.sol";
@@ -25,7 +26,7 @@ import { AnchorStateRegistry } from "src/dispute/AnchorStateRegistry.sol";
 import { L1CrossDomainMessenger } from "src/L1/L1CrossDomainMessenger.sol";
 import { DeployConfig } from "scripts/DeployConfig.s.sol";
 import { Deploy } from "scripts/Deploy.s.sol";
-import { L2Genesis } from "scripts/L2Genesis.s.sol";
+import { L2Genesis, L1Dependencies } from "scripts/L2Genesis.s.sol";
 import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
 import { ProtocolVersions } from "src/L1/ProtocolVersions.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
@@ -53,7 +54,7 @@ contract Setup {
     ///         mutating any nonces. MUST not have constructor logic.
     Deploy internal constant deploy = Deploy(address(uint160(uint256(keccak256(abi.encode("optimism.deploy"))))));
 
-    L2Genesis internal constant l2Genesis = L2Genesis(address(uint160(uint256(keccak256(abi.encode("optimism.deploy"))))));
+    L2Genesis internal constant l2Genesis = L2Genesis(address(uint160(uint256(keccak256(abi.encode("optimism.l2genesis"))))));
 
     OptimismPortal optimismPortal;
     OptimismPortal2 optimismPortal2;
@@ -104,6 +105,7 @@ contract Setup {
 
     /// @dev Sets up the L1 contracts.
     function L1() public {
+        console.log("Setup: creating L1 deployments");
         // Set the deterministic deployer in state to ensure that it is there
         vm.etch(
             0x4e59b44847b379578588920cA78FbF26c0B4956C,
@@ -111,6 +113,7 @@ contract Setup {
         );
 
         deploy.run();
+        console.log("Setup: completed L1 deployment, registering addresses now");
 
         optimismPortal = OptimismPortal(deploy.mustGetAddress("OptimismPortalProxy"));
         optimismPortal2 = OptimismPortal2(deploy.mustGetAddress("OptimismPortalProxy"));
@@ -159,11 +162,17 @@ contract Setup {
             vm.label(address(dataAvailabilityChallenge), "DataAvailabilityChallengeProxy");
             vm.label(deploy.mustGetAddress("DataAvailabilityChallenge"), "DataAvailabilityChallenge");
         }
+        console.log("Setup: registered L1 deployments");
     }
 
     /// @dev Sets up the L2 contracts. Depends on `L1()` being called first.
     function L2() public {
-        l2Genesis.runInProcess();
+        console.log("Setup: creating L2 genesis");
+        l2Genesis.runInProcess(L1Dependencies({
+            deployedL1CrossDomainMessengerProxy: payable(address(l1CrossDomainMessenger)),
+            deployedL1StandardBridgeProxy: payable(address(l1StandardBridge)),
+            deployedL1ERC721BridgeProxy: payable(address(l1ERC721Bridge))
+        }));
 
         // Set the governance token's owner to be the final system owner
         address finalSystemOwner = deploy.cfg().finalSystemOwner();
@@ -198,6 +207,8 @@ contract Setup {
         labelPreinstall(Preinstalls.SenderCreator);
         labelPreinstall(Preinstalls.EntryPoint);
         labelPreinstall(Preinstalls.BeaconBlockRoots);
+
+        console.log("Setup: completed L2 genesis");
     }
 
     function labelPredeploy(address _addr) internal {

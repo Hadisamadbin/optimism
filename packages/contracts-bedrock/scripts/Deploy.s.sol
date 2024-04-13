@@ -272,12 +272,16 @@ contract Deploy is Deployer {
 
     /// @notice Internal function containing the deploy logic.
     function _run() internal {
+        console.log("start of L1 Deploy!");
         deploySafe();
+        console.log("deployed Safe!");
         setupSuperchain();
+        console.log("set up superchain!");
         if (cfg.usePlasma()) {
             setupOpPlasma();
         }
         setupOpChain();
+        console.log("set up op chain!");
     }
 
     ////////////////////////////////////////////////////////////////

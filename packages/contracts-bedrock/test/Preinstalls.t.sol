@@ -42,11 +42,12 @@ contract PreinstallsTest is CommonTest {
         assertEq(defaultCode, Preinstalls.Permit2TemplateCode, "template is using chain ID 1");
     }
 
-    function assertPreinstall(address addr, bytes memory code) internal view {
-        assertNotEq(code.length, 0, "must have code");
-        assertEq(addr.code, code, "equal code must be deployed");
-        assertEq(Preinstalls.getDeployedCode(addr, block.chainid), code, "deployed-code getter must match");
-        assertNotEq(Preinstalls.getName(addr), "", "must have a name");
+    function assertPreinstall(address _addr, bytes memory _code) internal view {
+        assertNotEq(_code.length, 0, "must have code");
+        assertNotEq(_addr.code.length, 0, "deployed preinstall account must have code");
+        assertEq(_addr.code, _code, "equal code must be deployed");
+        assertEq(Preinstalls.getDeployedCode(_addr, block.chainid), _code, "deployed-code getter must match");
+        assertNotEq(Preinstalls.getName(_addr), "", "must have a name");
     }
 
     function test_preinstall_multicall3_succeeds() external view {
