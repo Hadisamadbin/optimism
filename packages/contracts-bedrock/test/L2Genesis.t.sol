@@ -3,9 +3,9 @@ pragma solidity 0.8.15;
 
 import { Test } from "forge-std/Test.sol";
 import { L2Genesis } from "scripts/L2Genesis.s.sol";
+import { console2 as console } from "forge-std/console2.sol";
 import { VmSafe } from "forge-std/Vm.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { console } from "forge-std/console.sol";
 import { stdJson } from "forge-std/StdJson.sol";
 import { LibString } from "solady/utils/LibString.sol";
 import { Constants } from "src/libraries/Constants.sol";
@@ -57,7 +57,6 @@ contract L2GenesisTest is Test {
     // can this become a modifier?
     function withTempDump(function (string memory) internal f) internal {
         string memory path = tmpfile();
-        vm.setEnv("STATE_DUMP_PATH", path);
         f(path);
         deleteFile(path);
     }
@@ -135,7 +134,9 @@ contract L2GenesisTest is Test {
         string[] memory commands = new string[](3);
         commands[0] = "bash";
         commands[1] = "-c";
-        commands[2] = string.concat("jq -r '.\"", vm.toString(addr), "\".storage.\"0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc\"' < ", path);
+        // Forge state dumps use lower-case addresses as keys in the allocs dictionary.
+        commands[2] = string.concat("jq -r '.\"", vm.toLowercase(vm.toString(addr)),
+            "\".storage.\"0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc\"' < ", path);
         return address(uint160(uint256(abi.decode(vm.ffi(commands), (bytes32)))));
     }
 
@@ -143,43 +144,42 @@ contract L2GenesisTest is Test {
         withTempDump(_testPredeployProxies);
     }
 
-    // TODO: there are 2 addresses that dont work
-    function _testPredeployProxies(string memory path) internal {
+    function _testPredeployProxies(string memory _path) internal {
         // Set the predeploy proxies into state
         genesis.setPredeployProxies();
-        genesis.writeGenesisAllocs("");
+        genesis.writeGenesisAllocs(_path);
 
         // 2 predeploys do not have proxies
-        assertEq(getCodeCount(path, "Proxy.sol:Proxy"), Predeploys.PREDEPLOY_COUNT - 2);
+        assertEq(getCodeCount(_path, "Proxy.sol:Proxy"), Predeploys.PREDEPLOY_COUNT - 2);
 
         // 17 proxies have the implementation set
-        assertEq(getPredeployCountWithSlotSet(path, Constants.PROXY_IMPLEMENTATION_ADDRESS), 17);
+        assertEq(getPredeployCountWithSlotSet(_path, Constants.PROXY_IMPLEMENTATION_ADDRESS), 17);
 
         // All proxies except 2 have the proxy 1967 admin slot set to the proxy admin
-        assertEq(getPredeployCountWithSlotSetToValue(path, Constants.PROXY_OWNER_ADDRESS, bytes32(uint256(uint160(Predeploys.PROXY_ADMIN)))), Predeploys.PREDEPLOY_COUNT - 2);
+        assertEq(getPredeployCountWithSlotSetToValue(_path, Constants.PROXY_OWNER_ADDRESS, bytes32(uint256(uint160(Predeploys.PROXY_ADMIN)))), Predeploys.PREDEPLOY_COUNT - 2);
 
         // For each predeploy
-        assertEq(0xc0D3C0d3C0d3C0D3c0d3C0d3c0D3C0d3c0d30000, getImplementationAtAPath(path, Predeploys.LEGACY_MESSAGE_PASSER));
+        assertEq(0xc0D3C0d3C0d3C0D3c0d3C0d3c0D3C0d3c0d30000, getImplementationAtAPath(_path, Predeploys.LEGACY_MESSAGE_PASSER));
         // 1: legacy, not used in OP-Stack.
-        assertEq(0xc0d3c0d3C0d3c0D3c0d3C0D3c0d3C0d3c0D30002, getImplementationAtAPath(path, Predeploys.DEPLOYER_WHITELIST));
+        assertEq(0xc0d3c0d3C0d3c0D3c0d3C0D3c0d3C0d3c0D30002, getImplementationAtAPath(_path, Predeploys.DEPLOYER_WHITELIST));
         // 3,4,5: legacy, not used in OP-Stack.
         // 6: WETH9, not behind a proxy
-        assertEq(0xC0d3c0d3c0D3c0D3C0d3C0D3C0D3c0d3c0d30007, getImplementationAtAPath(path, Predeploys.L2_CROSS_DOMAIN_MESSENGER));
+        assertEq(0xC0d3c0d3c0D3c0D3C0d3C0D3C0D3c0d3c0d30007, getImplementationAtAPath(_path, Predeploys.L2_CROSS_DOMAIN_MESSENGER));
         // 8,9,A,B,C,D,E: legacy, not used in OP-Stack.
-        //assertEq(0xc0d3C0d3C0d3c0D3C0D3C0d3C0d3C0D3C0D3000f, getImplementationAtAPath(path, Predeploys.GAS_PRICE_ORACLE));// TODO
-        assertEq(0xC0d3c0d3c0D3c0d3C0D3c0D3C0d3C0D3C0D30010, getImplementationAtAPath(path, Predeploys.L2_STANDARD_BRIDGE));
-        assertEq(0xC0D3C0d3c0d3c0d3C0D3c0d3C0D3c0d3c0D30011, getImplementationAtAPath(path, Predeploys.SEQUENCER_FEE_WALLET));
-        assertEq(0xc0D3c0d3C0d3c0d3c0D3c0d3c0D3c0D3c0D30012, getImplementationAtAPath(path, Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY));
-        assertEq(0xC0D3C0d3C0D3c0D3C0d3c0D3C0d3c0d3C0d30013, getImplementationAtAPath(path, Predeploys.L1_BLOCK_NUMBER));
-        assertEq(0xC0D3c0d3c0d3c0d3c0D3C0d3C0D3C0D3c0d30014, getImplementationAtAPath(path, Predeploys.L2_ERC721_BRIDGE));
-        assertEq(0xc0d3C0D3C0D3c0D3C0D3C0d3C0D3c0D3c0d30015, getImplementationAtAPath(path, Predeploys.L1_BLOCK_ATTRIBUTES));
-        assertEq(0xC0D3C0d3C0d3c0d3C0d3C0D3c0D3c0d3c0D30016, getImplementationAtAPath(path, Predeploys.L2_TO_L1_MESSAGE_PASSER));
-        assertEq(0xc0d3C0d3C0d3C0d3C0d3c0d3C0D3C0d3C0D30017, getImplementationAtAPath(path, Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY));
-        assertEq(0xC0d3C0D3c0d3C0d3c0d3c0D3C0D3C0d3C0D30018, getImplementationAtAPath(path, Predeploys.PROXY_ADMIN));
-        assertEq(0xC0d3c0D3c0d3C0D3C0D3C0d3c0D3C0D3c0d30019, getImplementationAtAPath(path, Predeploys.BASE_FEE_VAULT));
-        //assertEq(0xc0D3c0D3C0d3c0d3c0d3C0d3c0d3C0d3C0D3001A, getImplementationAtAPath(path, Predeploys.L1_FEE_VAULT));// TODO
+        assertEq(0xc0d3C0d3C0d3c0D3C0D3C0d3C0d3C0D3C0D3000f, getImplementationAtAPath(_path, Predeploys.GAS_PRICE_ORACLE));
+        assertEq(0xC0d3c0d3c0D3c0d3C0D3c0D3C0d3C0D3C0D30010, getImplementationAtAPath(_path, Predeploys.L2_STANDARD_BRIDGE));
+        assertEq(0xC0D3C0d3c0d3c0d3C0D3c0d3C0D3c0d3c0D30011, getImplementationAtAPath(_path, Predeploys.SEQUENCER_FEE_WALLET));
+        assertEq(0xc0D3c0d3C0d3c0d3c0D3c0d3c0D3c0D3c0D30012, getImplementationAtAPath(_path, Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY));
+        assertEq(0xC0D3C0d3C0D3c0D3C0d3c0D3C0d3c0d3C0d30013, getImplementationAtAPath(_path, Predeploys.L1_BLOCK_NUMBER));
+        assertEq(0xC0D3c0d3c0d3c0d3c0D3C0d3C0D3C0D3c0d30014, getImplementationAtAPath(_path, Predeploys.L2_ERC721_BRIDGE));
+        assertEq(0xc0d3C0D3C0D3c0D3C0D3C0d3C0D3c0D3c0d30015, getImplementationAtAPath(_path, Predeploys.L1_BLOCK_ATTRIBUTES));
+        assertEq(0xC0D3C0d3C0d3c0d3C0d3C0D3c0D3c0d3c0D30016, getImplementationAtAPath(_path, Predeploys.L2_TO_L1_MESSAGE_PASSER));
+        assertEq(0xc0d3C0d3C0d3C0d3C0d3c0d3C0D3C0d3C0D30017, getImplementationAtAPath(_path, Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY));
+        assertEq(0xC0d3C0D3c0d3C0d3c0d3c0D3C0D3C0d3C0D30018, getImplementationAtAPath(_path, Predeploys.PROXY_ADMIN));
+        assertEq(0xC0d3c0D3c0d3C0D3C0D3C0d3c0D3C0D3c0d30019, getImplementationAtAPath(_path, Predeploys.BASE_FEE_VAULT));
+        assertEq(0xc0D3c0D3C0d3c0d3c0d3C0d3c0d3C0d3C0D3001A, getImplementationAtAPath(_path, Predeploys.L1_FEE_VAULT));
         // 1B,1C,1D,1E,1F: not used.
-        assertEq(0xc0d3c0d3c0d3C0d3c0d3C0D3C0D3c0d3C0D30020, getImplementationAtAPath(path, Predeploys.SCHEMA_REGISTRY));
-        assertEq(0xC0D3c0D3C0d3c0D3c0D3C0D3c0D3c0d3c0d30021, getImplementationAtAPath(path, Predeploys.EAS));
+        assertEq(0xc0d3c0d3c0d3C0d3c0d3C0D3C0D3c0d3C0D30020, getImplementationAtAPath(_path, Predeploys.SCHEMA_REGISTRY));
+        assertEq(0xC0D3c0D3C0d3c0D3c0D3C0D3c0D3c0d3c0d30021, getImplementationAtAPath(_path, Predeploys.EAS));
     }
 }

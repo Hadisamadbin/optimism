@@ -119,11 +119,11 @@ contract L2Genesis is Deployer {
             return;
         }
         if (_mode == OutputMode.OUTPUT_ALL) {
-            writeGenesisAllocs("-delta");
+            writeGenesisAllocs(Config.stateDumpPath("-delta"));
         }
         activateEcotone();
         if (_mode == OutputMode.OUTPUT_ALL || _mode == OutputMode.DEFAULT_LATEST) {
-            writeGenesisAllocs("");
+            writeGenesisAllocs(Config.stateDumpPath(""));
         }
     }
 
@@ -477,17 +477,16 @@ contract L2Genesis is Deployer {
     }
 
     /// @notice Writes the genesis allocs, i.e. the state dump, to disk
-    function writeGenesisAllocs(string memory _suffix) public {
+    function writeGenesisAllocs(string memory _path) public {
         /// Reset so its not included state dump
         vm.etch(address(cfg), "");
         vm.etch(msg.sender, "");
         vm.resetNonce(msg.sender);
         vm.deal(msg.sender, 0);
 
-        string memory path = Config.stateDumpPath(_suffix);
-        console.log("Writing state dump to: %s", path);
-        vm.dumpState(path);
-        sortJsonByKeys(path);
+        console.log("Writing state dump to: %s", _path);
+        vm.dumpState(_path);
+        sortJsonByKeys(_path);
     }
 
     /// @notice Sorts the allocs by address
