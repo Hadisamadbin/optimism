@@ -151,10 +151,6 @@ contract RevenueSharer {
      */
     function feeVaultWithdrawal(address payable _feeVault) internal returns (uint256) {
         require(
-            FeeVault(_feeVault).WITHDRAWAL_NETWORK() == FeeVault.WithdrawalNetwork.L2,
-            "RevenueSharer: FeeVault must withdraw to L2"
-        );
-        require(
             FeeVault(_feeVault).RECIPIENT() == address(this),
             "RevenueSharer: FeeVault must withdraw to RevenueSharer contract"
         );

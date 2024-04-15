@@ -248,11 +248,7 @@ contract L2Genesis is Script, Artifacts {
     /// @dev Because the constructor args are stored as immutables,
     ///      we don't have to worry about setting storage slots.
     function _setSequencerFeeVault() internal {
-        SequencerFeeVault vault = new SequencerFeeVault({
-            _recipient: cfg.sequencerFeeVaultRecipient(),
-            _minWithdrawalAmount: cfg.sequencerFeeVaultMinimumWithdrawalAmount(),
-            _withdrawalNetwork: FeeVault.WithdrawalNetwork(cfg.sequencerFeeVaultWithdrawalNetwork())
-        });
+        SequencerFeeVault vault = new SequencerFeeVault();
 
         address impl = _predeployToCodeNamespace(Predeploys.SEQUENCER_FEE_WALLET);
         console.log("Setting %s implementation at: %s", "SequencerFeeVault", impl);

@@ -47,7 +47,6 @@ contract Events {
     event OutputsDeleted(uint256 indexed prevNextOutputIndex, uint256 indexed newNextOutputIndex);
 
     event Withdrawal(uint256 value, address to, address from);
-    event Withdrawal(uint256 value, address to, address from, FeeVault.WithdrawalNetwork withdrawalNetwork);
 
     event ETHDepositInitiated(address indexed from, address indexed to, uint256 amount, bytes data);
 
