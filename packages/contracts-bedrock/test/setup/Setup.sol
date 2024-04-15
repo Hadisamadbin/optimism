@@ -26,7 +26,7 @@ import { AnchorStateRegistry } from "src/dispute/AnchorStateRegistry.sol";
 import { L1CrossDomainMessenger } from "src/L1/L1CrossDomainMessenger.sol";
 import { DeployConfig } from "scripts/DeployConfig.s.sol";
 import { Deploy } from "scripts/Deploy.s.sol";
-import { L2Genesis, L1Dependencies } from "scripts/L2Genesis.s.sol";
+import { L2Genesis, L1Dependencies, OutputMode } from "scripts/L2Genesis.s.sol";
 import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
 import { ProtocolVersions } from "src/L1/ProtocolVersions.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
@@ -55,6 +55,9 @@ contract Setup {
     Deploy internal constant deploy = Deploy(address(uint160(uint256(keccak256(abi.encode("optimism.deploy"))))));
 
     L2Genesis internal constant l2Genesis = L2Genesis(address(uint160(uint256(keccak256(abi.encode("optimism.l2genesis"))))));
+
+    // @notice Allows users of Setup to override what L2 genesis is being created.
+    OutputMode l2OutputMode = OutputMode.LOCAL_LATEST;
 
     OptimismPortal optimismPortal;
     OptimismPortal2 optimismPortal2;
@@ -94,13 +97,17 @@ contract Setup {
     ///      will also need to include the bytecode for the Deploy contract.
     ///      This is a hack as we are pushing solidity to the edge.
     function setUp() public virtual {
+        console.log("L1 setup start!");
         vm.etch(address(deploy), vm.getDeployedCode("Deploy.s.sol:Deploy"));
         vm.allowCheatcodes(address(deploy));
         deploy.setUp();
+        console.log("L1 setup done!");
 
+        console.log("L2 setup start!");
         vm.etch(address(l2Genesis), vm.getDeployedCode("L2Genesis.s.sol:L2Genesis"));
         vm.allowCheatcodes(address(l2Genesis));
         l2Genesis.setUp();
+        console.log("L2 setup done!");
     }
 
     /// @dev Sets up the L1 contracts.
@@ -168,7 +175,7 @@ contract Setup {
     /// @dev Sets up the L2 contracts. Depends on `L1()` being called first.
     function L2() public {
         console.log("Setup: creating L2 genesis");
-        l2Genesis.runInProcess(L1Dependencies({
+        l2Genesis.runWithOptions(l2OutputMode, L1Dependencies({
             deployedL1CrossDomainMessengerProxy: payable(address(l1CrossDomainMessenger)),
             deployedL1StandardBridgeProxy: payable(address(l1StandardBridge)),
             deployedL1ERC721BridgeProxy: payable(address(l1ERC721Bridge))

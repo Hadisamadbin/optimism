@@ -35,6 +35,18 @@ struct L1Dependencies {
     address payable deployedL1ERC721BridgeProxy;
 }
 
+/// @notice Enum representing different ways of outputting genesis allocs.
+/// @custom:value DEFAULT_LATEST Represents only latest L2 allocs, written to output path.
+/// @custom:value LOCAL_LATEST   Represents latest L2 allocs, not output anywhere, but kept in-process.
+/// @custom:value LOCAL_DELTA    Represents Delta-upgrade L2 allocs, not output anywhere, but kept in-process.
+/// @custom:value OUTPUT_ALL     Represents creation of one L2 allocs file for every upgrade.
+enum OutputMode {
+    DEFAULT_LATEST,
+    LOCAL_LATEST,
+    LOCAL_DELTA,
+    OUTPUT_ALL
+}
+
 /// @title L2Genesis
 /// @notice Generates the genesis state for the L2 network.
 ///         The following safety invariants are used when setting state:
@@ -43,6 +55,7 @@ struct L1Dependencies {
 ///         2. A contract must be deployed using the `new` syntax if there are immutables in the code.
 ///         Any other side effects from the init code besides setting the immutables must be cleaned up afterwards.
 contract L2Genesis is Deployer {
+
     uint256 constant public PRECOMPILE_COUNT = 256;
 
     uint80 internal constant DEV_ACCOUNT_FUND_AMT = 10_000 ether;
@@ -84,20 +97,33 @@ contract L2Genesis is Deployer {
     ///      to generate a L2 genesis alloc.
     /// @notice The alloc object is sorted numerically by address.
     function runWithStateDump() public {
-        runInProcess(artifactDependencies());
-
-        writeGenesisAllocs();
+        runWithOptions(OutputMode.DEFAULT_LATEST, artifactDependencies());
     }
 
-    function runInProcess(L1Dependencies memory _l1Dependencies) public {
+    // @dev This is used by op-e2e to have a version of the L2 allocs for each upgrade.
+    function runWithAllUpgrades() public {
+        runWithOptions(OutputMode.OUTPUT_ALL, artifactDependencies());
+    }
+
+    function runWithOptions(OutputMode _mode, L1Dependencies memory _l1Dependencies) public {
         dealEthToPrecompiles();
         setPredeployProxies();
         setPredeployImplementations(_l1Dependencies);
         setPreinstalls();
-        activateEcotone();
-
         if (cfg.fundDevAccounts()) {
             fundDevAccounts();
+        }
+        // Genesis is "complete" at this point, but some hardfork activation steps remain.
+        // Depending on the "Output Mode" we perform the activations and output the necessary state dumps.
+        if (_mode == OutputMode.LOCAL_DELTA) {
+            return;
+        }
+        if (_mode == OutputMode.OUTPUT_ALL) {
+            writeGenesisAllocs("-delta");
+        }
+        activateEcotone();
+        if (_mode == OutputMode.OUTPUT_ALL || _mode == OutputMode.DEFAULT_LATEST) {
+            writeGenesisAllocs("");
         }
     }
 
@@ -451,14 +477,14 @@ contract L2Genesis is Deployer {
     }
 
     /// @notice Writes the genesis allocs, i.e. the state dump, to disk
-    function writeGenesisAllocs() public {
+    function writeGenesisAllocs(string memory _suffix) public {
         /// Reset so its not included state dump
         vm.etch(address(cfg), "");
         vm.etch(msg.sender, "");
         vm.resetNonce(msg.sender);
         vm.deal(msg.sender, 0);
 
-        string memory path = Config.stateDumpPath();
+        string memory path = Config.stateDumpPath(_suffix);
         console.log("Writing state dump to: %s", path);
         vm.dumpState(path);
         sortJsonByKeys(path);

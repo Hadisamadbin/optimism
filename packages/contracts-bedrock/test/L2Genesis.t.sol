@@ -14,9 +14,10 @@ contract L2GenesisTest is Test {
     L2Genesis genesis;
 
     function setUp() public {
-        vm.setEnv("CONTRACT_ADDRESSES_PATH", string.concat(vm.projectRoot(), "/test/mocks/addresses.json"));
-
         genesis = new L2Genesis();
+        // Note: to customize L1 addresses,
+        // simply pass in the L1 addresses argument for Genesis setup functions that depend on it.
+        // L1 addresses, or L1 artifacts, are not stored globally.
         genesis.setUp();
     }
 
@@ -146,7 +147,7 @@ contract L2GenesisTest is Test {
     function _testPredeployProxies(string memory path) internal {
         // Set the predeploy proxies into state
         genesis.setPredeployProxies();
-        genesis.writeGenesisAllocs();
+        genesis.writeGenesisAllocs("");
 
         // 2 predeploys do not have proxies
         assertEq(getCodeCount(path, "Proxy.sol:Proxy"), Predeploys.PREDEPLOY_COUNT - 2);

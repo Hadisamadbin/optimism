@@ -3,6 +3,7 @@ pragma solidity 0.8.15;
 
 // Testing utilities
 import { CommonTest } from "test/setup/CommonTest.sol";
+import { OutputMode } from "scripts/L2Genesis.s.sol";
 
 // Libraries
 import { Encoding } from "src/libraries/Encoding.sol";
@@ -37,6 +38,8 @@ contract GasPriceOracle_Test is CommonTest {
 contract GasPriceOracleBedrock_Test is GasPriceOracle_Test {
     /// @dev Sets up the test suite.
     function setUp() public virtual override {
+        // The gasPriceOracle tests rely on an L2 genesis that is not past Ecotone.
+        l2OutputMode = OutputMode.LOCAL_DELTA;
         super.setUp();
 
         vm.prank(depositor);

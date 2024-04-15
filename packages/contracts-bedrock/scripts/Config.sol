@@ -52,9 +52,9 @@ library Config {
 
     /// @notice Returns the path that the state dump file should be written to or read from
     ///         on the local filesystem.
-    function stateDumpPath() internal view returns (string memory _env) {
+    function stateDumpPath(string memory _suffix) internal view returns (string memory _env) {
         _env = vm.envOr(
-            "STATE_DUMP_PATH", string.concat(vm.projectRoot(), "/state-dump-", vm.toString(block.chainid), ".json")
+            "STATE_DUMP_PATH", string.concat(vm.projectRoot(), "/state-dump-", vm.toString(block.chainid), _suffix, ".json")
         );
     }
 

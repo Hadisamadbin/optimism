@@ -185,6 +185,8 @@ def devnet_deploy(paths):
             # without DEVNET_FPAC=true which means the allocs will be wrong.
             # Re-running this step means the allocs will be correct.
             devnet_l1_allocs(paths)
+        else:
+            log.info('Re-using existing L1 allocs.')
 
         # It's odd that we want to regenerate the devnetL1.json file with
         # an updated timestamp different than the one used in the devnet_l1_allocs
@@ -211,6 +213,13 @@ def devnet_deploy(paths):
         log.info('L2 genesis and rollup configs already generated.')
     else:
         log.info('Generating L2 genesis and rollup configs.')
+        if os.path.exists(paths.allocs_l2_path) == False or DEVNET_FPAC == True:
+            # Also regenerate if FPAC.
+            # The FPAC flag may affect the L1 deployments addresses, which may affect the L2 genesis.
+            devnet_l2_allocs(paths)
+        else:
+            log.info('Re-using existing L2 allocs.')
+
         run_command([
             'go', 'run', 'cmd/main.go', 'genesis', 'l2',
             '--l1-rpc', 'http://localhost:8545',
