@@ -17,7 +17,7 @@ library Predeploys {
     address internal constant L2_ERC721_BRIDGE = 0x4200000000000000000000000000000000000014;
 
     //// @notice Address of the SequencerFeeWallet predeploy.
-    address internal constant SEQUENCER_FEE_WALLET = 0x4200000000000000000000000000000000000011;
+    address payable internal constant SEQUENCER_FEE_WALLET = payable(0x4200000000000000000000000000000000000011);
 
     /// @notice Address of the OptimismMintableERC20Factory predeploy.
     address internal constant OPTIMISM_MINTABLE_ERC20_FACTORY = 0x4200000000000000000000000000000000000012;
@@ -64,10 +64,10 @@ library Predeploys {
     address internal constant PROXY_ADMIN = 0x4200000000000000000000000000000000000018;
 
     /// @notice Address of the BaseFeeVault predeploy.
-    address internal constant BASE_FEE_VAULT = 0x4200000000000000000000000000000000000019;
+    address payable internal constant BASE_FEE_VAULT = payable(0x4200000000000000000000000000000000000019);
 
     /// @notice Address of the L1FeeVault predeploy.
-    address internal constant L1_FEE_VAULT = 0x420000000000000000000000000000000000001A;
+    address payable internal constant L1_FEE_VAULT = payable(0x420000000000000000000000000000000000001A);
 
     /// @notice Address of the GovernanceToken predeploy.
     address internal constant GOVERNANCE_TOKEN = 0x4200000000000000000000000000000000000042;
