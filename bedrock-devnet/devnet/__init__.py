@@ -63,7 +63,8 @@ def main():
     devnet_dir = pjoin(monorepo_dir, '.devnet')
     contracts_bedrock_dir = pjoin(monorepo_dir, 'packages', 'contracts-bedrock')
     deployment_dir = pjoin(contracts_bedrock_dir, 'deployments', 'devnetL1')
-    forge_dump_path = pjoin(contracts_bedrock_dir, 'Deploy-900.json')
+    forge_l1_dump_path = pjoin(contracts_bedrock_dir, 'state-dump-900.json')
+    forge_l2_dump_path = pjoin(contracts_bedrock_dir, 'state-dump-901.json')
     op_node_dir = pjoin(args.monorepo_dir, 'op-node')
     ops_bedrock_dir = pjoin(monorepo_dir, 'ops-bedrock')
     deploy_config_dir = pjoin(contracts_bedrock_dir, 'deploy-config')
@@ -77,7 +78,8 @@ def main():
       devnet_dir=devnet_dir,
       contracts_bedrock_dir=contracts_bedrock_dir,
       deployment_dir=deployment_dir,
-      forge_dump_path=forge_dump_path,
+      forge_l1_dump_path=forge_l1_dump_path,
+      forge_l2_dump_path=forge_l2_dump_path,
       l1_deployments_path=pjoin(deployment_dir, '.deploy'),
       deploy_config_dir=deploy_config_dir,
       devnet_config_path=devnet_config_path,
@@ -88,7 +90,8 @@ def main():
       sdk_dir=sdk_dir,
       genesis_l1_path=pjoin(devnet_dir, 'genesis-l1.json'),
       genesis_l2_path=pjoin(devnet_dir, 'genesis-l2.json'),
-      allocs_path=pjoin(devnet_dir, 'allocs-l1.json'),
+      allocs_l1_path=pjoin(devnet_dir, 'allocs-l1.json'),
+      allocs_l2_path=pjoin(devnet_dir, 'allocs-l2.json'),
       addresses_json_path=pjoin(devnet_dir, 'addresses.json'),
       sdk_addresses_json_path=pjoin(devnet_dir, 'sdk-addresses.json'),
       rollup_config_path=pjoin(devnet_dir, 'rollup.json')
@@ -102,7 +105,8 @@ def main():
     os.makedirs(devnet_dir, exist_ok=True)
 
     if args.allocs:
-        devnet_l1_genesis(paths)
+        devnet_l1_allocs(paths)
+        devnet_l2_allocs(paths)
         return
 
     git_commit = subprocess.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True).stdout.strip()
@@ -136,8 +140,8 @@ def init_devnet_l1_deploy_config(paths, update_timestamp=False):
         deploy_config['usePlasma'] = True
     write_json(paths.devnet_config_path, deploy_config)
 
-def devnet_l1_genesis(paths):
-    log.info('Generating L1 genesis state')
+def devnet_l1_allocs(paths):
+    log.info('Generating L1 genesis allocs')
     init_devnet_l1_deploy_config(paths)
 
     fqn = 'scripts/Deploy.s.sol:Deploy'
@@ -146,11 +150,28 @@ def devnet_l1_genesis(paths):
         'forge', 'script', '--chain-id', '900', fqn, "--sig", "runWithStateDump()", "--private-key", "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
     ], env={}, cwd=paths.contracts_bedrock_dir)
 
-    forge_dump = read_json(paths.forge_dump_path)
-    write_json(paths.allocs_path, { "accounts": forge_dump })
-    os.remove(paths.forge_dump_path)
+    forge_dump = read_json(paths.forge_l1_dump_path)
+    write_json(paths.allocs_l1_path, { "accounts": forge_dump })
+    os.remove(paths.forge_l1_dump_path)
 
     shutil.copy(paths.l1_deployments_path, paths.addresses_json_path)
+
+
+def devnet_l2_allocs(paths):
+    log.info('Generating L2 genesis allocs, with L1 addresses: '+paths.l1_deployments_path)
+
+    fqn = 'scripts/L2Genesis.s.sol:L2Genesis'
+    # Use foundry pre-funded account #1 for the deployer
+    run_command([
+        'forge', 'script', '--chain-id', '901', fqn, "--sig", "runWithStateDump()", "--private-key", "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+    ], env={
+      'CONTRACT_ADDRESSES_PATH': paths.l1_deployments_path,
+    }, cwd=paths.contracts_bedrock_dir)
+
+    forge_dump = read_json(paths.forge_l2_dump_path)
+    write_json(paths.allocs_l2_path, { "accounts": forge_dump })
+    os.remove(paths.forge_l2_dump_path)
+
 
 # Bring up the devnet where the contracts are deployed to L1
 def devnet_deploy(paths):
@@ -158,15 +179,15 @@ def devnet_deploy(paths):
         log.info('L1 genesis already generated.')
     else:
         log.info('Generating L1 genesis.')
-        if os.path.exists(paths.allocs_path) == False or DEVNET_FPAC == True:
+        if os.path.exists(paths.allocs_l1_path) == False or DEVNET_FPAC == True:
             # If this is the FPAC devnet then we need to generate the allocs
             # file here always. This is because CI will run devnet-allocs
             # without DEVNET_FPAC=true which means the allocs will be wrong.
             # Re-running this step means the allocs will be correct.
-            devnet_l1_genesis(paths)
+            devnet_l1_allocs(paths)
 
         # It's odd that we want to regenerate the devnetL1.json file with
-        # an updated timestamp different than the one used in the devnet_l1_genesis
+        # an updated timestamp different than the one used in the devnet_l1_allocs
         # function.  But, without it, CI flakes on this test rather consistently.
         # If someone reads this comment and understands why this is being done, please
         # update this comment to explain.
@@ -174,7 +195,7 @@ def devnet_deploy(paths):
         run_command([
             'go', 'run', 'cmd/main.go', 'genesis', 'l1',
             '--deploy-config', paths.devnet_config_path,
-            '--l1-allocs', paths.allocs_path,
+            '--l1-allocs', paths.allocs_l1_path,
             '--l1-deployments', paths.addresses_json_path,
             '--outfile.l1', paths.genesis_l1_path,
         ], cwd=paths.op_node_dir)
@@ -194,6 +215,7 @@ def devnet_deploy(paths):
             'go', 'run', 'cmd/main.go', 'genesis', 'l2',
             '--l1-rpc', 'http://localhost:8545',
             '--deploy-config', paths.devnet_config_path,
+            '--l2-allocs', paths.allocs_l2_path,
             '--l1-deployments', paths.addresses_json_path,
             '--outfile.l2', paths.genesis_l2_path,
             '--outfile.rollup', paths.rollup_config_path

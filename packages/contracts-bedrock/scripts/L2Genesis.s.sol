@@ -83,7 +83,7 @@ contract L2Genesis is Deployer {
     /// @dev Sets the precompiles, proxies, and the implementation accounts to be `vm.dumpState`
     ///      to generate a L2 genesis alloc.
     /// @notice The alloc object is sorted numerically by address.
-    function runDefaults() public {
+    function runWithStateDump() public {
         runInProcess(artifactDependencies());
 
         writeGenesisAllocs();

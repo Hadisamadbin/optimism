@@ -2,164 +2,52 @@ package genesis
 
 import (
 	"fmt"
-	"math/big"
+
+	"github.com/holiman/uint256"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
+	gstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
 	"github.com/ethereum-optimism/optimism/op-bindings/predeploys"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/deployer"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/immutables"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/squash"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/state"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
 )
 
 // BuildL2Genesis will build the L2 genesis block.
-func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Genesis, error) {
+func BuildL2Genesis(config *DeployConfig, dump *gstate.Dump, l1StartBlock *types.Block) (*core.Genesis, error) {
 	genspec, err := NewL2Genesis(config, l1StartBlock)
 	if err != nil {
 		return nil, err
 	}
-
-	db := state.NewMemoryStateDB(genspec)
-	if config.FundDevAccounts {
-		log.Info("Funding developer accounts in L2 genesis")
-		FundDevAccounts(db)
-	}
-
-	SetPrecompileBalances(db)
-
-	storage, err := NewL2StorageConfig(config, l1StartBlock)
-	if err != nil {
-		return nil, err
-	}
-
-	immutableConfig, err := NewL2ImmutableConfig(config, l1StartBlock)
-	if err != nil {
-		return nil, err
-	}
-
-	// Set up the proxies
-	err = setProxies(db, predeploys.ProxyAdminAddr, BigL2PredeployNamespace, 2048)
-	if err != nil {
-		return nil, err
-	}
-
-	// Set up the implementations that contain immutables
-	deployResults, err := immutables.Deploy(immutableConfig)
-	if err != nil {
-		return nil, fmt.Errorf("immutables.Deploy failed: %w", err)
-	}
-	for name, predeploy := range predeploys.Predeploys {
-		if predeploy.Enabled != nil && !predeploy.Enabled(config) {
-			log.Warn("Skipping disabled predeploy.", "name", name, "address", predeploy.Address)
+	// We may want to switch to just parsing the dump with the assumption that it
+	// does not contain malformed accounts and storage values that otherwise have to be handled gracefully like below.
+	for addrstr, acc := range dump.Accounts {
+		if !common.IsHexAddress(addrstr) {
+			// quirk because we use the "dump" type, which supports colliding preimages for otherwise invalid accounts.
 			continue
 		}
-
-		codeAddr := predeploy.Address
-		switch name {
-		case "Permit2":
-			deployerAddressBytes, err := bindings.GetDeployerAddress(name)
-			if err != nil {
-				return nil, err
-			}
-			deployerAddress := common.BytesToAddress(deployerAddressBytes)
-			predeploys := map[string]*common.Address{
-				"DeterministicDeploymentProxy": &deployerAddress,
-			}
-			backend, err := deployer.NewBackendWithChainIDAndPredeploys(
-				new(big.Int).SetUint64(config.L2ChainID),
-				predeploys,
-			)
-			if err != nil {
-				return nil, fmt.Errorf("NewBackendWithChainIDAndPredeploys failed: %w", err)
-			}
-			deployedBin, err := deployer.DeployWithDeterministicDeployer(backend, name)
-			if err != nil {
-				backend.Close()
-				return nil, fmt.Errorf("DeployWithDeterministicDeployer failed: %w", err)
-			}
-			backend.Close()
-			deployResults[name] = deployedBin
-			fallthrough
-		case "MultiCall3", "Create2Deployer", "Safe_v130",
-			"SafeL2_v130", "MultiSendCallOnly_v130", "SafeSingletonFactory",
-			"DeterministicDeploymentProxy", "MultiSend_v130", "SenderCreator", "EntryPoint":
-			db.CreateAccount(codeAddr)
-		default:
-			if !predeploy.ProxyDisabled {
-				codeAddr, err = AddressToCodeNamespace(predeploy.Address)
-				if err != nil {
-					return nil, fmt.Errorf("error converting to code namespace: %w", err)
-				}
-				db.CreateAccount(codeAddr)
-				db.SetState(predeploy.Address, ImplementationSlot, eth.AddressAsLeftPaddedHash(codeAddr))
-				log.Info("Set proxy", "name", name, "address", predeploy.Address, "implementation", codeAddr)
+		addr := common.HexToAddress(addrstr)
+		var result core.GenesisAccount
+		if len(acc.Storage) > 0 {
+			result.Storage = make(map[common.Hash]common.Hash, len(acc.Storage))
+			for k, v := range acc.Storage {
+				result.Storage[k] = common.HexToHash(v)
 			}
 		}
-
-		if predeploy.ProxyDisabled && db.Exist(predeploy.Address) {
-			db.DeleteState(predeploy.Address, AdminSlot)
+		var v uint256.Int
+		if err := v.UnmarshalText([]byte(acc.Balance)); err != nil {
+			return nil, fmt.Errorf("failed to parse balance of %s: %w", addr, err)
 		}
-
-		if err := setupPredeploy(db, deployResults, storage, name, predeploy.Address, codeAddr); err != nil {
-			return nil, fmt.Errorf("setupPredeploy failed: %w", err)
-		}
-		code := db.GetCode(codeAddr)
-		if len(code) == 0 {
-			return nil, fmt.Errorf("code not set for %s", name)
-		}
+		result.Balance = v.ToBig()
+		result.Nonce = acc.Nonce
+		result.Code = acc.Code
+		genspec.Alloc[addr] = result
 	}
-
-	if err := PerformUpgradeTxs(db); err != nil {
-		return nil, fmt.Errorf("failed to perform upgrade txs: %w", err)
+	// sanity check the permit2 immutable, to verify we using the allocs for the right chain.
+	chainID := [32]byte(genspec.Alloc[predeploys.Permit2Addr].Code[6945 : 6945+32])
+	expected := uint256.MustFromBig(genspec.Config.ChainID).Bytes32()
+	if chainID != expected {
+		return nil, fmt.Errorf("allocs were generated for chain ID %x, but expected chain %x (%d)", chainID, expected, genspec.Config.ChainID)
 	}
-
-	return db.Genesis(), nil
-}
-
-func PerformUpgradeTxs(db *state.MemoryStateDB) error {
-	// Only the Ecotone upgrade is performed with upgrade-txs.
-	if !db.Genesis().Config.IsEcotone(db.Genesis().Timestamp) {
-		return nil
-	}
-	sim := squash.NewSimulator(db)
-	ecotone, err := derive.EcotoneNetworkUpgradeTransactions()
-	if err != nil {
-		return fmt.Errorf("failed to build ecotone upgrade txs: %w", err)
-	}
-	if err := sim.AddUpgradeTxs(ecotone); err != nil {
-		return fmt.Errorf("failed to apply ecotone upgrade txs: %w", err)
-	}
-	return nil
-}
-
-// From Permit2:
-//
-//	    address constant PERMIT2_ADDRESS = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
-//	    bytes32 private constant _HASHED_NAME = keccak256("Permit2");
-//	    bytes32 private constant _TYPE_HASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
-//
-//	    uint256 private immutable _CACHED_CHAIN_ID = block.chainid;
-//	    bytes32 private immutable _CACHED_DOMAIN_SEPARATOR = _buildDomainSeparator(_TYPE_HASH, _HASHED_NAME);
-//
-//		   function _buildDomainSeparator(bytes32 typeHash, bytes32 nameHash) private view returns (bytes32) {
-//		       return keccak256(abi.encode(typeHash, nameHash, block.chainid, address(this)));
-//		   }
-func Permit2DomainSeparator(chainID [32]byte) [32]byte {
-	hashedName := crypto.Keccak256Hash([]byte("Permit2"))
-	typeHash := crypto.Keccak256Hash([]byte("EIP712Domain(string name,uint256 chainId,address verifyingContract)"))
-	thisAddr := common.HexToAddress("0x000000000022D473030F116dDEE9F6B43aC78BA3")
-	var abiEncoded [32 * 4]byte
-	copy(abiEncoded[32*0:32*1], typeHash[:])
-	copy(abiEncoded[32*1:32*2], hashedName[:])
-	copy(abiEncoded[32*2:32*3], chainID[:])
-	copy(abiEncoded[32*3+(32-20):32*4], thisAddr[:])
-	return crypto.Keccak256Hash(abiEncoded[:])
+	return genspec, nil
 }
