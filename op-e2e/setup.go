@@ -479,7 +479,8 @@ func (cfg SystemConfig) Start(t *testing.T, _opts ...SystemConfigOption) (*Syste
 	}
 
 	l1Block := l1Genesis.ToBlock()
-	l2Genesis, err := genesis.BuildL2Genesis(cfg.DeployConfig, l1Block)
+	// TODO
+	l2Genesis, err := genesis.BuildL2Genesis(cfg.DeployConfig, nil, l1Block)
 	if err != nil {
 		return nil, err
 	}

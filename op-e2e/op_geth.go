@@ -58,7 +58,8 @@ func NewOpGeth(t *testing.T, ctx context.Context, cfg *SystemConfig) (*OpGeth, e
 	require.Nil(t, err)
 	l1Block := l1Genesis.ToBlock()
 
-	l2Genesis, err := genesis.BuildL2Genesis(cfg.DeployConfig, l1Block)
+	// TODO
+	l2Genesis, err := genesis.BuildL2Genesis(cfg.DeployConfig, nil, l1Block)
 	require.Nil(t, err)
 	l2GenesisBlock := l2Genesis.ToBlock()
 

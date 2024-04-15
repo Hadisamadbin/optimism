@@ -44,7 +44,8 @@ func testBuildL2Genesis(t *testing.T, config *genesis.DeployConfig) *core.Genesi
 	block, err := backend.BlockByNumber(context.Background(), common.Big0)
 	require.NoError(t, err)
 
-	gen, err := genesis.BuildL2Genesis(config, block)
+	// TODO
+	gen, err := genesis.BuildL2Genesis(config, nil, block)
 	require.Nil(t, err)
 	require.NotNil(t, gen)
 
