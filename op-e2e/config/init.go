@@ -113,7 +113,7 @@ func init() {
 		panic(err)
 	}
 	mustL2Allocs := func(mode genesis.L2AllocsMode) {
-		allocs, err := genesis.LoadL2Allocs(filepath.Join(l2AllocsDir, "l2-allocs-"+string(mode)+".json"))
+		allocs, err := genesis.LoadForgeAllocs(filepath.Join(l2AllocsDir, "l2-allocs-"+string(mode)+".json"))
 		if err != nil {
 			panic(err)
 		}

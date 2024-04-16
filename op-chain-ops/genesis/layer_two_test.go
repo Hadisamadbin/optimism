@@ -186,6 +186,7 @@ func TestCheckL2Genesis(t *testing.T) {
 	config, err := genesis.NewDeployConfig("../../packages/contracts-bedrock/deploy-config/devnetL1.json")
 	require.Nil(t, err)
 	allocs, err := genesis.LoadForgeAllocs("../../.devnet/allocs-l2.json")
+	require.NoError(t, err)
 	config.EnableGovernance = true
 	config.FundDevAccounts = false
 	gen := testBuildL2Genesis(t, allocs, config)
