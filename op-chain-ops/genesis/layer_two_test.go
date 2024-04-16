@@ -14,7 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
 
@@ -34,7 +33,7 @@ func init() {
 var testKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 
 // Tests the BuildL2MainnetGenesis factory with the provided config.
-func testBuildL2Genesis(t *testing.T, config *genesis.DeployConfig) *core.Genesis {
+func testBuildL2Genesis(t *testing.T, allocs *genesis.ForgeAllocs, config *genesis.DeployConfig) *core.Genesis {
 	backend := backends.NewSimulatedBackend( // nolint:staticcheck
 		core.GenesisAlloc{
 			crypto.PubkeyToAddress(testKey.PublicKey): {Balance: big.NewInt(10000000000000000)},
@@ -44,8 +43,7 @@ func testBuildL2Genesis(t *testing.T, config *genesis.DeployConfig) *core.Genesi
 	block, err := backend.BlockByNumber(context.Background(), common.Big0)
 	require.NoError(t, err)
 
-	// TODO
-	gen, err := genesis.BuildL2Genesis(config, nil, block)
+	gen, err := genesis.BuildL2Genesis(config, allocs, block)
 	require.Nil(t, err)
 	require.NotNil(t, gen)
 
@@ -95,7 +93,7 @@ func testBuildL2Genesis(t *testing.T, config *genesis.DeployConfig) *core.Genesi
 		addr := predeploy.Address
 
 		if addr == predeploys.L1BlockAddr {
-			testL1Block(t, backend, config, block)
+			testL1Block(t, backend)
 		}
 
 		account, ok := gen.Alloc[addr]
@@ -118,7 +116,7 @@ func testBuildL2Genesis(t *testing.T, config *genesis.DeployConfig) *core.Genesi
 	// All of the precompile addresses should be funded with a single wei
 	for i := 0; i < genesis.PrecompileCount; i++ {
 		addr := common.BytesToAddress([]byte{byte(i)})
-		require.Equal(t, common.Big1, gen.Alloc[addr].Balance)
+		require.Equalf(t, common.Big1.String(), gen.Alloc[addr].Balance.String(), "expected precompile addr %s to have balance of 1 wei", addr)
 	}
 
 	create2Deployer := gen.Alloc[predeploys.Create2DeployerAddr]
@@ -132,26 +130,28 @@ func testBuildL2Genesis(t *testing.T, config *genesis.DeployConfig) *core.Genesi
 	return gen
 }
 
-// testL1Block tests that the state is set correctly in the L1Block predeploy
-func testL1Block(t *testing.T, caller bind.ContractCaller, config *genesis.DeployConfig, block *types.Block) {
+// testL1Block tests that the state is clear in the L1Block predeploy at L2 genesis
+func testL1Block(t *testing.T, caller bind.ContractCaller) {
 	contract, err := bindings.NewL1BlockCaller(predeploys.L1BlockAddr, caller)
 	require.NoError(t, err)
 
 	number, err := contract.Number(&bind.CallOpts{})
 	require.NoError(t, err)
-	require.Equal(t, block.Number().Uint64(), number)
+	require.Equal(t, uint64(0), number)
 
 	timestamp, err := contract.Timestamp(&bind.CallOpts{})
 	require.NoError(t, err)
-	require.Equal(t, block.Time(), timestamp)
+	require.Equal(t, uint64(0), timestamp)
 
 	basefee, err := contract.Basefee(&bind.CallOpts{})
 	require.NoError(t, err)
-	require.Equal(t, block.BaseFee(), basefee)
+	// 0, not matching L1 block, intentionally not initialized. Overridden before first user-tx.
+	require.Equal(t, big.NewInt(0).String(), basefee.String())
 
 	hash, err := contract.Hash(&bind.CallOpts{})
 	require.NoError(t, err)
-	require.Equal(t, block.Hash(), common.Hash(hash))
+	// 0, not matching L1 block, intentionally not initialized. Overridden before first user-tx.
+	require.Equal(t, common.Hash{}, common.Hash(hash))
 
 	sequenceNumber, err := contract.SequenceNumber(&bind.CallOpts{})
 	require.NoError(t, err)
@@ -159,46 +159,42 @@ func testL1Block(t *testing.T, caller bind.ContractCaller, config *genesis.Deplo
 
 	blobBaseFeeScalar, err := contract.BlobBaseFeeScalar(&bind.CallOpts{})
 	require.NoError(t, err)
-	require.Equal(t, config.GasPriceOracleBlobBaseFeeScalar, blobBaseFeeScalar)
+	require.Equal(t, uint32(0), blobBaseFeeScalar)
 
 	baseFeeScalar, err := contract.BaseFeeScalar(&bind.CallOpts{})
 	require.NoError(t, err)
-	require.Equal(t, config.GasPriceOracleBaseFeeScalar, baseFeeScalar)
+	require.Equal(t, uint32(0), baseFeeScalar)
 
 	batcherHeader, err := contract.BatcherHash(&bind.CallOpts{})
 	require.NoError(t, err)
-	require.Equal(t, eth.AddressAsLeftPaddedHash(config.BatchSenderAddress), common.Hash(batcherHeader))
+	require.Equal(t, common.Hash{}, common.Hash(batcherHeader))
 
 	l1FeeOverhead, err := contract.L1FeeOverhead(&bind.CallOpts{})
 	require.NoError(t, err)
-	require.Equal(t, config.GasPriceOracleOverhead, l1FeeOverhead.Uint64())
+	require.Equal(t, uint64(0), l1FeeOverhead.Uint64())
 
 	l1FeeScalar, err := contract.L1FeeScalar(&bind.CallOpts{})
 	require.NoError(t, err)
-	require.Equal(t, config.GasPriceOracleScalar, l1FeeScalar.Uint64())
+	require.Equal(t, uint64(0), l1FeeScalar.Uint64())
 
 	blobBaseFee, err := contract.BlobBaseFee(&bind.CallOpts{})
 	require.NoError(t, err)
-	if excessBlobGas := block.ExcessBlobGas(); excessBlobGas != nil {
-		require.Equal(t, uint64(0), *excessBlobGas)
-	}
-	require.Equal(t, big.NewInt(1), blobBaseFee)
+	require.Equal(t, big.NewInt(0).String(), blobBaseFee.String())
 }
 
-func TestBuildL2MainnetGenesis(t *testing.T) {
-	config, err := genesis.NewDeployConfig("./testdata/test-deploy-config-devnet-l1.json")
+func TestCheckL2Genesis(t *testing.T) {
+	config, err := genesis.NewDeployConfig("../../packages/contracts-bedrock/deploy-config/devnetL1.json")
 	require.Nil(t, err)
+	allocs, err := genesis.LoadForgeAllocs("../../.devnet/allocs-l2.json")
 	config.EnableGovernance = true
 	config.FundDevAccounts = false
-	gen := testBuildL2Genesis(t, config)
-	require.Equal(t, 2333, len(gen.Alloc))
-}
+	gen := testBuildL2Genesis(t, allocs, config)
+	expected := 0
+	expected += 2048 - 2 // predeploy proxies
+	expected += 19       // predeploy implementations (excl. legacy erc20-style eth and legacy message sender)
+	expected += 256      // precompiles
+	expected += 12       // preinstalls
+	expected += 9        // dev accounts
 
-func TestBuildL2MainnetNoGovernanceGenesis(t *testing.T) {
-	config, err := genesis.NewDeployConfig("./testdata/test-deploy-config-devnet-l1.json")
-	require.Nil(t, err)
-	config.EnableGovernance = false
-	config.FundDevAccounts = false
-	gen := testBuildL2Genesis(t, config)
-	require.Equal(t, 2333, len(gen.Alloc))
+	require.Equal(t, expected, len(gen.Alloc))
 }

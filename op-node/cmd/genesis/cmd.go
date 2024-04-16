@@ -170,9 +170,9 @@ var Subcommands = cli.Commands{
 				}
 			}
 
-			var dump *state.Dump
-			if l2Allocs := ctx.String("l2-allocs"); l2Allocs != "" {
-				dump, err = genesis.NewStateDump(l2Allocs)
+			var l2Allocs *genesis.ForgeAllocs
+			if l2AllocsPath := ctx.String("l2-allocs"); l2AllocsPath != "" {
+				l2Allocs, err = genesis.LoadForgeAllocs(l2AllocsPath)
 				if err != nil {
 					return err
 				}
@@ -220,7 +220,7 @@ var Subcommands = cli.Commands{
 			log.Info("Using L1 Start Block", "number", l1StartBlock.Number(), "hash", l1StartBlock.Hash().Hex())
 
 			// Build the L2 genesis block
-			l2Genesis, err := genesis.BuildL2Genesis(config, dump, l1StartBlock)
+			l2Genesis, err := genesis.BuildL2Genesis(config, l2Allocs, l1StartBlock)
 			if err != nil {
 				return fmt.Errorf("error creating l2 genesis: %w", err)
 			}

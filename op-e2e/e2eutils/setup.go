@@ -122,8 +122,11 @@ func Setup(t require.TestingT, deployParams *DeployParams, alloc *AllocParams) *
 
 	l1Block := l1Genesis.ToBlock()
 
-	// TODO load allocs that match hardfork
-	l2Genesis, err := genesis.BuildL2Genesis(deployConf, nil, l1Block)
+	l2Allocs := config.L2Allocs[genesis.L2AllocsDelta]
+	if ecotoneTime := deployConf.EcotoneTime(l1Block.Time()); ecotoneTime != nil && *ecotoneTime <= 0 {
+		l2Allocs = config.L2Allocs[genesis.L2AllocsEcotone]
+	}
+	l2Genesis, err := genesis.BuildL2Genesis(deployConf, l2Allocs, l1Block)
 	require.NoError(t, err, "failed to create l2 genesis")
 	if alloc.PrefundTestUsers {
 		for _, addr := range deployParams.Addresses.All() {

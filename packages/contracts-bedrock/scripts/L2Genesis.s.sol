@@ -296,6 +296,8 @@ contract L2Genesis is Deployer {
     /// @notice This predeploy is following the safety invariant #1.
     function setL1Block() public {
         _setImplementationCode(Predeploys.L1_BLOCK_ATTRIBUTES);
+        // Note: L1 block attributes are set to 0.
+        // Before the first user-tx the state is overwritten with actual L1 attributes.
     }
 
     /// @notice This predeploy is following the safety invariant #1.

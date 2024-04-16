@@ -46,7 +46,6 @@ contract DeployConfig is Script {
     string public governanceTokenSymbol;
     address public governanceTokenOwner;
     uint256 public l2GenesisBlockGasLimit;
-    uint256 public l2GenesisBlockBaseFeePerGas;
     uint256 public gasPriceOracleOverhead;
     uint256 public gasPriceOracleScalar;
     bool public enableGovernance;

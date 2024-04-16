@@ -44,6 +44,8 @@ var (
 	// L1Deployments maps contract names to accounts in the L1
 	// genesis block state.
 	L1Deployments *genesis.L1Deployments
+	// L2Allocs represents the L2 allocs, by hardfork/mode (e.g. delta, ecotone, interop, other)
+	L2Allocs map[genesis.L2AllocsMode]*genesis.ForgeAllocs
 	// DeployConfig represents the deploy config used by the system.
 	DeployConfig *genesis.DeployConfig
 	// ExternalL2Shim is the shim to use if external ethereum client testing is
@@ -57,7 +59,7 @@ var (
 )
 
 func init() {
-	var l1AllocsPath, l1DeploymentsPath, deployConfigPath, externalL2 string
+	var l1AllocsPath, l2AllocsDir, l1DeploymentsPath, deployConfigPath, externalL2 string
 
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -69,10 +71,12 @@ func init() {
 	}
 
 	defaultL1AllocsPath := filepath.Join(root, ".devnet", "allocs-l1.json")
+	defaultL2AllocsDir := filepath.Join(root, ".devnet")
 	defaultL1DeploymentsPath := filepath.Join(root, ".devnet", "addresses.json")
 	defaultDeployConfigPath := filepath.Join(root, "packages", "contracts-bedrock", "deploy-config", "devnetL1.json")
 
 	flag.StringVar(&l1AllocsPath, "l1-allocs", defaultL1AllocsPath, "")
+	flag.StringVar(&l2AllocsDir, "l2-allocs-dir", defaultL2AllocsDir, "")
 	flag.StringVar(&l1DeploymentsPath, "l1-deployments", defaultL1DeploymentsPath, "")
 	flag.StringVar(&deployConfigPath, "deploy-config", defaultDeployConfigPath, "")
 	flag.StringVar(&externalL2, "externalL2", "", "Enable tests with external L2")
@@ -108,6 +112,15 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+	mustL2Allocs := func(mode genesis.L2AllocsMode) {
+		allocs, err := genesis.LoadL2Allocs(filepath.Join(l2AllocsDir, "l2-allocs-"+string(mode)+".json"))
+		if err != nil {
+			panic(err)
+		}
+		L2Allocs[mode] = allocs
+	}
+	mustL2Allocs(genesis.L2AllocsEcotone)
+	mustL2Allocs(genesis.L2AllocsDelta)
 	L1Deployments, err = genesis.NewL1Deployments(l1DeploymentsPath)
 	if err != nil {
 		panic(err)
