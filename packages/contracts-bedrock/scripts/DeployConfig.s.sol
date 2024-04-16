@@ -113,7 +113,6 @@ contract DeployConfig is Script {
         governanceTokenSymbol = stdJson.readString(_json, "$.governanceTokenSymbol");
         governanceTokenOwner = stdJson.readAddress(_json, "$.governanceTokenOwner");
         l2GenesisBlockGasLimit = stdJson.readUint(_json, "$.l2GenesisBlockGasLimit");
-        l2GenesisBlockBaseFeePerGas = stdJson.readUint(_json, "$.l2GenesisBlockBaseFeePerGas");
         gasPriceOracleOverhead = stdJson.readUint(_json, "$.gasPriceOracleOverhead");
         gasPriceOracleScalar = stdJson.readUint(_json, "$.gasPriceOracleScalar");
         enableGovernance = stdJson.readBool(_json, "$.enableGovernance");

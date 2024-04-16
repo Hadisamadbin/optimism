@@ -55,8 +55,7 @@ enum OutputMode {
 ///         2. A contract must be deployed using the `new` syntax if there are immutables in the code.
 ///         Any other side effects from the init code besides setting the immutables must be cleaned up afterwards.
 contract L2Genesis is Deployer {
-
-    uint256 constant public PRECOMPILE_COUNT = 256;
+    uint256 public constant PRECOMPILE_COUNT = 256;
 
     uint80 internal constant DEV_ACCOUNT_FUND_AMT = 10_000 ether;
 
@@ -173,7 +172,7 @@ contract L2Genesis is Deployer {
         // 01: legacy, not used in OP-Stack
         setDeployerWhitelist(); // 2
         // 3,4,5: legacy, not used in OP-Stack.
-        setWETH9();  // 6: WETH9 (not behind a proxy)
+        setWETH9(); // 6: WETH9 (not behind a proxy)
         setL2CrossDomainMessenger(_l1Dependencies.deployedL1CrossDomainMessengerProxy); // 7
         // 8,9,A,B,C,D,E: legacy, not used in OP-Stack.
         setGasPriceOracle(); // f
@@ -212,9 +211,7 @@ contract L2Genesis is Deployer {
     function setL2CrossDomainMessenger(address payable _deployedL1CrossDomainMessengerProxy) public {
         address impl = _setImplementationCode(Predeploys.L2_CROSS_DOMAIN_MESSENGER);
 
-        L2CrossDomainMessenger(impl).initialize({
-            _l1CrossDomainMessenger: L1CrossDomainMessenger(address(0))
-        });
+        L2CrossDomainMessenger(impl).initialize({ _l1CrossDomainMessenger: L1CrossDomainMessenger(address(0)) });
 
         L2CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER).initialize({
             _l1CrossDomainMessenger: L1CrossDomainMessenger(_deployedL1CrossDomainMessengerProxy)
@@ -225,9 +222,7 @@ contract L2Genesis is Deployer {
     function setL2StandardBridge(address payable _deployedL1StandardBridgeProxy) public {
         address impl = _setImplementationCode(Predeploys.L2_STANDARD_BRIDGE);
 
-        L2StandardBridge(payable(impl)).initialize({
-            _otherBridge: L1StandardBridge(payable(address(0)))
-        });
+        L2StandardBridge(payable(impl)).initialize({ _otherBridge: L1StandardBridge(payable(address(0))) });
 
         L2StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE)).initialize({
             _otherBridge: L1StandardBridge(_deployedL1StandardBridgeProxy)
@@ -238,13 +233,9 @@ contract L2Genesis is Deployer {
     function setL2ERC721Bridge(address payable _deployedL1ERC721BridgeProxy) public {
         address impl = _setImplementationCode(Predeploys.L2_ERC721_BRIDGE);
 
-        L2ERC721Bridge(impl).initialize({
-            _l1ERC721Bridge: payable(address(0))
-        });
+        L2ERC721Bridge(impl).initialize({ _l1ERC721Bridge: payable(address(0)) });
 
-        L2ERC721Bridge(Predeploys.L2_ERC721_BRIDGE).initialize({
-            _l1ERC721Bridge: payable(_deployedL1ERC721BridgeProxy)
-        });
+        L2ERC721Bridge(Predeploys.L2_ERC721_BRIDGE).initialize({ _l1ERC721Bridge: payable(_deployedL1ERC721BridgeProxy) });
     }
 
     /// @notice This predeploy is following the safety invariant #2,
@@ -268,9 +259,7 @@ contract L2Genesis is Deployer {
     function setOptimismMintableERC20Factory() public {
         address impl = _setImplementationCode(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY);
 
-        OptimismMintableERC20Factory(impl).initialize({
-            _bridge: address(0)
-        });
+        OptimismMintableERC20Factory(impl).initialize({ _bridge: address(0) });
 
         OptimismMintableERC20Factory(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY).initialize({
             _bridge: Predeploys.L2_STANDARD_BRIDGE
@@ -279,10 +268,8 @@ contract L2Genesis is Deployer {
 
     /// @notice This predeploy is following the safety invariant #2,
     function setOptimismMintableERC721Factory() public {
-        OptimismMintableERC721Factory factory = new OptimismMintableERC721Factory({
-            _bridge: Predeploys.L2_ERC721_BRIDGE,
-            _remoteChainId: cfg.l1ChainID()
-        });
+        OptimismMintableERC721Factory factory =
+            new OptimismMintableERC721Factory({ _bridge: Predeploys.L2_ERC721_BRIDGE, _remoteChainId: cfg.l1ChainID() });
 
         address impl = Predeploys.predeployToCodeNamespace(Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY);
         console.log("Setting %s implementation at: %s", "OptimismMintableERC721Factory", impl);

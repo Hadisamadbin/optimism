@@ -6,19 +6,17 @@ import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { Bytes } from "src/libraries/Bytes.sol";
 import { console2 as console } from "forge-std/console2.sol";
 
-
 interface IEIP712 {
     function DOMAIN_SEPARATOR() external view returns (bytes32);
 }
 
 /// @title PreinstallsTest
 contract PreinstallsTest is CommonTest {
-
     /// @dev The domain separator commits to the chainid of the chain
     function test_preinstall_permit2_domain_separator() external view {
         bytes32 domainSeparator = IEIP712(Preinstalls.Permit2).DOMAIN_SEPARATOR();
         bytes32 typeHash =
-                        keccak256(abi.encodePacked("EIP712Domain(string name,uint256 chainId,address verifyingContract)"));
+            keccak256(abi.encodePacked("EIP712Domain(string name,uint256 chainId,address verifyingContract)"));
         bytes32 nameHash = keccak256(abi.encodePacked("Permit2"));
         uint256 chainId = block.chainid;
         bytes memory encoded = abi.encode(typeHash, nameHash, chainId, Preinstalls.Permit2);
@@ -33,12 +31,20 @@ contract PreinstallsTest is CommonTest {
         bytes memory customCode = Preinstalls.getPermit2Code(1234);
         assertNotEq(customCode.length, 0, "must have code");
         assertEq(uint256(bytes32(Bytes.slice(customCode, 6945, 32))), uint256(1234), "expecting custom chain ID");
-        assertEq(bytes32(Bytes.slice(customCode, 6983, 32)), bytes32(0x6cda538cafce36292a6ef27740629597f85f6716f5694d26d5c59fc1d07cfd95), "expecting custom domain separator");
+        assertEq(
+            bytes32(Bytes.slice(customCode, 6983, 32)),
+            bytes32(0x6cda538cafce36292a6ef27740629597f85f6716f5694d26d5c59fc1d07cfd95),
+            "expecting custom domain separator"
+        );
 
         bytes memory defaultCode = Preinstalls.getPermit2Code(1);
         assertNotEq(defaultCode.length, 0, "must have code");
         assertEq(uint256(bytes32(Bytes.slice(defaultCode, 6945, 32))), uint256(1), "expecting default chain ID");
-        assertEq(bytes32(Bytes.slice(defaultCode, 6983, 32)), bytes32(0x866a5aba21966af95d6c7ab78eb2b2fc913915c28be3b9aa07cc04ff903e3f28), "expecting default domain separator");
+        assertEq(
+            bytes32(Bytes.slice(defaultCode, 6983, 32)),
+            bytes32(0x866a5aba21966af95d6c7ab78eb2b2fc913915c28be3b9aa07cc04ff903e3f28),
+            "expecting default domain separator"
+        );
         assertEq(defaultCode, Preinstalls.Permit2TemplateCode, "template is using chain ID 1");
     }
 
@@ -101,5 +107,4 @@ contract PreinstallsTest is CommonTest {
         // TODO: this test fails with legacy genesis, due to missing 4788 contract there (no ecotone support).
         // assertPreinstall(Preinstalls.BeaconBlockRoots, Preinstalls.BeaconBlockRootsCode);
     }
-
 }

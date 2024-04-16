@@ -54,7 +54,8 @@ library Config {
     ///         on the local filesystem.
     function stateDumpPath(string memory _suffix) internal view returns (string memory _env) {
         _env = vm.envOr(
-            "STATE_DUMP_PATH", string.concat(vm.projectRoot(), "/state-dump-", vm.toString(block.chainid), _suffix, ".json")
+            "STATE_DUMP_PATH",
+            string.concat(vm.projectRoot(), "/state-dump-", vm.toString(block.chainid), _suffix, ".json")
         );
     }
 

@@ -70,5 +70,4 @@ contract PredeploysTest is CommonTest {
             assertEq(EIP1967Helper.getAdmin(addr), Predeploys.PROXY_ADMIN, "Admin mismatch");
         }
     }
-
 }

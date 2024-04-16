@@ -54,7 +54,8 @@ contract Setup {
     ///         mutating any nonces. MUST not have constructor logic.
     Deploy internal constant deploy = Deploy(address(uint160(uint256(keccak256(abi.encode("optimism.deploy"))))));
 
-    L2Genesis internal constant l2Genesis = L2Genesis(address(uint160(uint256(keccak256(abi.encode("optimism.l2genesis"))))));
+    L2Genesis internal constant l2Genesis =
+        L2Genesis(address(uint160(uint256(keccak256(abi.encode("optimism.l2genesis"))))));
 
     // @notice Allows users of Setup to override what L2 genesis is being created.
     OutputMode l2OutputMode = OutputMode.LOCAL_LATEST;
@@ -175,11 +176,14 @@ contract Setup {
     /// @dev Sets up the L2 contracts. Depends on `L1()` being called first.
     function L2() public {
         console.log("Setup: creating L2 genesis");
-        l2Genesis.runWithOptions(l2OutputMode, L1Dependencies({
-            deployedL1CrossDomainMessengerProxy: payable(address(l1CrossDomainMessenger)),
-            deployedL1StandardBridgeProxy: payable(address(l1StandardBridge)),
-            deployedL1ERC721BridgeProxy: payable(address(l1ERC721Bridge))
-        }));
+        l2Genesis.runWithOptions(
+            l2OutputMode,
+            L1Dependencies({
+                deployedL1CrossDomainMessengerProxy: payable(address(l1CrossDomainMessenger)),
+                deployedL1StandardBridgeProxy: payable(address(l1StandardBridge)),
+                deployedL1ERC721BridgeProxy: payable(address(l1ERC721Bridge))
+            })
+        );
 
         // Set the governance token's owner to be the final system owner
         address finalSystemOwner = deploy.cfg().finalSystemOwner();
