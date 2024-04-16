@@ -479,8 +479,11 @@ func (cfg SystemConfig) Start(t *testing.T, _opts ...SystemConfigOption) (*Syste
 	}
 
 	l1Block := l1Genesis.ToBlock()
-	// TODO
-	l2Genesis, err := genesis.BuildL2Genesis(cfg.DeployConfig, nil, l1Block)
+	l2Allocs := config.L2Allocs[genesis.L2AllocsDelta]
+	if ecotoneTime := cfg.DeployConfig.EcotoneTime(l1Block.Time()); ecotoneTime != nil && *ecotoneTime <= 0 {
+		l2Allocs = config.L2Allocs[genesis.L2AllocsEcotone]
+	}
+	l2Genesis, err := genesis.BuildL2Genesis(cfg.DeployConfig, l2Allocs, l1Block)
 	if err != nil {
 		return nil, err
 	}

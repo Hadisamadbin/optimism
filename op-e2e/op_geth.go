@@ -58,8 +58,11 @@ func NewOpGeth(t *testing.T, ctx context.Context, cfg *SystemConfig) (*OpGeth, e
 	require.Nil(t, err)
 	l1Block := l1Genesis.ToBlock()
 
-	// TODO
-	l2Genesis, err := genesis.BuildL2Genesis(cfg.DeployConfig, nil, l1Block)
+	l2Allocs := config.L2Allocs[genesis.L2AllocsDelta]
+	if ecotoneTime := cfg.DeployConfig.EcotoneTime(l1Block.Time()); ecotoneTime != nil && *ecotoneTime <= 0 {
+		l2Allocs = config.L2Allocs[genesis.L2AllocsEcotone]
+	}
+	l2Genesis, err := genesis.BuildL2Genesis(cfg.DeployConfig, l2Allocs, l1Block)
 	require.Nil(t, err)
 	l2GenesisBlock := l2Genesis.ToBlock()
 
