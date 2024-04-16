@@ -7,7 +7,7 @@ import { console2 as console } from "forge-std/console2.sol";
 import { VmSafe } from "forge-std/Vm.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { stdJson } from "forge-std/StdJson.sol";
-import { LibString } from "solady/utils/LibString.sol";
+import { LibString } from "@solady/utils/LibString.sol";
 import { Constants } from "src/libraries/Constants.sol";
 
 contract L2GenesisTest is Test {
