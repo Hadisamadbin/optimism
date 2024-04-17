@@ -27,7 +27,7 @@ contract PreinstallsTest is CommonTest {
         // Warning the Permit2 domain separator as cached in the DeployPermit2.sol bytecode is incorrect.
     }
 
-    function test_permit2_templating() external view {
+    function test_permit2_templating() external pure {
         bytes memory customCode = Preinstalls.getPermit2Code(1234);
         assertNotEq(customCode.length, 0, "must have code");
         assertEq(uint256(bytes32(Bytes.slice(customCode, 6945, 32))), uint256(1234), "expecting custom chain ID");
@@ -88,7 +88,7 @@ contract PreinstallsTest is CommonTest {
         assertPreinstall(Preinstalls.MultiSend_v130, Preinstalls.MultiSend_v130Code);
     }
 
-    function test_preinstall_permit2_succeeds() external view {
+    function test_preinstall_permit2_succeeds() external {
         uint256 pre = block.chainid;
         vm.chainId(901); // TODO legacy deployment does not use same chainID as tests run with
         assertPreinstall(Preinstalls.Permit2, Preinstalls.getPermit2Code(block.chainid));
