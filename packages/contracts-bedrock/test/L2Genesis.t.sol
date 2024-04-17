@@ -54,7 +54,6 @@ contract L2GenesisTest is Test {
         return abi.decode(vm.ffi(commands), (uint256));
     }
 
-    // can this become a modifier?
     function withTempDump(function (string memory) internal f) internal {
         string memory path = tmpfile();
         f(path);

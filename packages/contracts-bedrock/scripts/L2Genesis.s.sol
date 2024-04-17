@@ -77,12 +77,6 @@ contract L2Genesis is Deployer {
         return "L2Genesis";
     }
 
-    /// @dev Reads the deploy config, sets `outfile` which is where the `vm.dumpState` will be saved to, and
-    ///      loads in the addresses for the L1 contract deployments.
-    function setUp() public override {
-        super.setUp();
-    }
-
     function artifactDependencies() internal view returns (L1Dependencies memory l1Dependencies_) {
         console.log("retrieving L1 deployments from artifacts");
         return L1Dependencies({
